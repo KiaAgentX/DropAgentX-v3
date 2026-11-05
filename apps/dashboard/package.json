@@ -1,0 +1,34 @@
+{
+  "name": "@dropagentx/dashboard",
+  "version": "0.4.0",
+  "description": "DropAgentX v3 admin dashboard: Aurora UI, RTL fa/en, typed client over the Phase-2 OpenAPI contracts (ADR-005). Vite SPA — served as static files by the Fastify server in Phase 6.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dropagentx/contracts": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@dropagentx/server": "workspace:*",
+    "@tailwindcss/vite": "^4.1.11",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^4.5.2",
+    "jsdom": "^26.1.0",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
+}

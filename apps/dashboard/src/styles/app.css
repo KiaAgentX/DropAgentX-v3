@@ -1,0 +1,138 @@
+@import 'tailwindcss';
+
+/* ── Vazirmatn (self-hosted, font-display: swap) ─────────────────────── */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Aurora design tokens ─────────────────────────────────────────────── */
+@theme {
+  --font-sans: 'Vazirmatn', ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #e8edf6;
+  --color-ink-dim: #94a3b8;
+  --color-night: #05070f;
+  --color-panel: rgba(255, 255, 255, 0.03);
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-mint: #34d399;
+  --color-cyanx: #22d3ee;
+  --color-violetx: #a78bfa;
+  --color-amberx: #fbbf24;
+  --color-redx: #f87171;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-night);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Aurora backdrop — three fixed radial glows (emerald / cyan / violet). */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(42rem 42rem at 85% -10%, rgba(52, 211, 153, 0.13), transparent 60%),
+    radial-gradient(38rem 38rem at -10% 40%, rgba(34, 211, 238, 0.1), transparent 60%),
+    radial-gradient(40rem 40rem at 50% 110%, rgba(167, 139, 250, 0.12), transparent 60%),
+    var(--color-night);
+}
+
+.glass {
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  backdrop-filter: blur(12px);
+}
+
+.brand-gradient {
+  background: linear-gradient(90deg, var(--color-mint), var(--color-cyanx), var(--color-violetx));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Data table */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.tbl th {
+  text-align: start;
+  color: var(--color-ink-dim);
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-line);
+  white-space: nowrap;
+}
+.tbl td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+.tbl tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Inputs */
+.inp {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-line);
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.inp:focus {
+  border-color: rgba(52, 211, 153, 0.5);
+}
+.inp::placeholder {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+/* Thin scrollbars in panels */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

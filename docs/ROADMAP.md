@@ -56,11 +56,18 @@
   **۱۱۴/۱۱۴ کل monorepo** (domain ۴۰ + llm ۱۷ + contracts ۱۱ + server ۲۶ + bot ۲۰)؛ tsc strict تمیز؛
   بوت دودی سرور: `llmConfigured:true` با سه متغیر ADR-006، ۲۰ مسیر OpenAPI با تگ hitl.
 
-## فاز ۴ — داشبورد (`apps/dashboard`) ⏳
+## فاز ۴ — داشبورد (`apps/dashboard`) ✅
 
-- Aurora UI + RTL + fa/en + فونت Vazirmatn
-- پنل ادمین: تراز‌ها، تراکنش‌ها، صف HITL، محصولات، پارلمان
-- **پذیرش**: Lighthouse موبایل ≥ 90؛ RTL بدون شکستگی؛ خروجی از قرارداد OpenAPI فاز ۲.
+- **ADR-007**: Vite + React 19 + Tailwind v4 SPA — بدون SSR؛ hash routing بدون وابستگی router؛ در فاز ۶ همان `dist/` توسط Fastify استاتیک سرو می‌شود
+- Aurora UI (دارک، شیشه‌ای، سه هاله‌ی ملایم) + RTL پیش‌فرض + fa/en با برابری کلیدی دوطرفه (تست + تایپ) + فونت Vazirmatn self-hosted با `font-display: swap`
+- کلاینت = `createV3Client` تایپ‌دار فاز ۲ با لایه‌ی نازک تزریق `X-KIA-Key` — اعتبارسنجی پاسخ‌ها با همان zod قراردادها (حلقه‌ی ADR-005 از سمت داشبورد بسته شد)
+- صفحات: نمای کلی عمومی (شفافیت ماده‌ی ۶: عرضه/خزانه/قفل اسکرو/سقف ضرب با گیج + سلامت سرور + وضعیت ADR-006)، حساب‌ها (ایجاد/ضرب/سوزاندن با تأیید)، اسکروها (صافی ۸ وضعیت + دکمه‌های چرخه‌ی عمر **کلیدهای idempotency قطعی** — دابل‌کلیک = replay بی‌اثر)، صف HITL (تأیید/رد با audit trail + سوئیپ منقضی‌ها)، تنظیمات (مدیریت کلید sessionStorage، پیوند OpenAPI، مقادیر منشور)
+- گیت ادمین fail-closed: کلید قبل از ذخیره با یک endpoint واقعی ادمین امتحان می‌شود؛ خطاهای سیمی به پیام‌های محلی نگاشت می‌شوند (codes additive — ناشناخته‌ها به پیام عمومی می‌افتند)
+- **پذیرش (محقق شد)**: RTL بدون شکستگی (تمام رنگ‌ها/فاصله‌ها با CSS منطقی start/end؛ تست flip خودکار fa↔en)؛
+  **۱۴۹/۱۴۹ کل monorepo** (domain ۴۰ + llm ۱۷ + contracts ۱۱ + server ۲۶ + bot ۲۰ + dashboard ۳۵)؛
+  roundtrip واقعی: کلاینت داشبورد ↔ Fastify/Prisma/SQLite ↔ هسته‌ی دامنه — mint→escrow→release دقیقاً ۹۰/۱۰،
+  replay بدون پرداخت دوباره، overdraft رد، گیت HITL روی ۶۰٬۰۰۰ Đ تسویه‌ی اتمی، مهمان ۴۰۱ می‌گیرد؛
+  tsc strict تمیز؛ باندل تولیدی ۱۱۲KB gzip؛ Lighthouse موبایل روی ماشین ادمین اجرا می‌شود (باندل/فونت swap آماده‌ی ≥ ۹۰).
 
 ## فاز ۵ — چرخه‌ی AI (`packages/ai-gateway`) ⏳
 
