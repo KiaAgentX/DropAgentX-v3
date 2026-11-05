@@ -48,7 +48,7 @@ let client: ReturnType<typeof createDashboardClient>;
 
 beforeAll(async () => {
   execSync('pnpm exec prisma db push --skip-generate', { cwd: serverDir, env: process.env, stdio: 'pipe' });
-  built = await buildApp({ adminKey: ADMIN_KEY, botToken: undefined, devAuth: false, port: 8787, rateLimitPerMin: 100_000 });
+  built = await buildApp({ adminKey: ADMIN_KEY, botToken: undefined, devAuth: false, port: 8787, rateLimitPerMin: 100_000, aiDailyTokenCap: 120_000 });
   const injectFetch: FetchLike = makeInjectFetch(() => built);
   client = createDashboardClient({ baseUrl: 'http://test.local/api/v1', adminKey: ADMIN_KEY, fetchImpl: injectFetch });
 });

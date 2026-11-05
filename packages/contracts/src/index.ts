@@ -10,5 +10,6 @@ export * from './escrows.js';
 export * from './hitl.js';
 export * from './economy.js';
 export * from './system.js';
+export * from './ai.js';
 export * from './openapi.js';
 export * from './client.js';

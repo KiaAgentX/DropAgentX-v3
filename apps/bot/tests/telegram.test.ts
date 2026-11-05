@@ -58,6 +58,7 @@ beforeAll(async () => {
     devAuth: false,
     port: 8787,
     rateLimitPerMin: 100_000,
+    aiDailyTokenCap: 120_000,
   });
   await built.app.listen({ port: 0, host: '127.0.0.1' });
   const address = built.app.server.address();

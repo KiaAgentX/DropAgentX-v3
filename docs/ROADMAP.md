@@ -69,15 +69,27 @@
   replay بدون پرداخت دوباره، overdraft رد، گیت HITL روی ۶۰٬۰۰۰ Đ تسویه‌ی اتمی، مهمان ۴۰۱ می‌گیرد؛
   tsc strict تمیز؛ باندل تولیدی ۱۱۲KB gzip؛ Lighthouse موبایل روی ماشین ادمین اجرا می‌شود (باندل/فونت swap آماده‌ی ≥ ۹۰).
 
-## فاز ۵ — چرخه‌ی AI (`packages/ai-gateway`) ⏳
+## فاز ۵ — چرخه‌ی AI (`packages/ai-gateway`) ✅
 
-- لایه‌ی مدل قفل شد (**ADR-006**): فقط API سازگار با OpenAI روی سه متغیر محیطی؛
-  کلاینت آن در `packages/llm` از فاز ۲ آماده و تست‌شده است
-- AI Gateway چندسرویس‌دهنده: primary → secondary → fallback قطعی (چند `LlmConfig` با همان شکل، یادگیری از 9router هرمس)
-- ۶ ایجنت Zenovix + ۱۶ مهارت + ابزارهای fail-closed سبک KIA-OS
-- سنجش مصرف per-user + سقف هزینه + پالایش خروجی
-- **پذیرش**: قطع سرویس‌دهنده‌ی اصلی تست را نمی‌شکند (fallback فعال)؛
-  هر پاسخ AI ممیز (audit) و پالایش‌شده است.
+- لایه‌ی مدل قفل شد (**ADR-006**): فقط API سازگار با OpenAI؛ کلاینت در `packages/llm` از فاز ۲
+- **ADR-008**: AI Gateway چندسرویس‌دهنده — سه اسلات با همان شکل ADR-006
+  (`OPENAI_BASE_URL/API_KEY/MODEL` + پسوند `_2`/`_3`)، هر اسلات همه‌یا-هیچ؛
+  fallback قطعی primary → secondary → fallback، نام برنده در پاسخ و audit ثبت می‌شود
+- ۶ ایجنت Zenovix (هماهنگ‌گر/پذیرش/فروش/پشتیبانی/تحلیل‌گر/محتوا) + دقیقاً **۱۶ مهارت KIA-OS**
+  با رجیستری واحد: هویت + متادیتا fa/en + zod + مجوز ایجنت — گیت fail-closed **قبل از** اجرا؛
+  allowedSkills ایجنت‌ها از همان رجیستری مشتق می‌شود (بدون drift)
+- پاکت JSON به‌جای function-calling اختصاصی: `{"reply"}` یا `{"tool","args"}` —
+  دو پاکت خراب = شکست تایپ‌دار، متن خام مدل هرگز عبور نمی‌کند
+- سنجش مصرف per-user با سقف روزانه (`AI_DAILY_TOKEN_CAP`، پیش‌فرض ۱۲۰٬۰۰۰) روی جدول `AiUsage` —
+  گیت **قبل از** هر فراخوانی provider؛ سقف تمام → 429 typed
+- پالایش خروجی با ۹ قاعده‌ی جنگ‌آزموده‌ی لجسی (PEM، Bearer، JWT، sk، توکن تلگرام، AWS، کارت، seed phrase، hex) + شمارش در audit
+- هر پاسخ ممیز می‌شود: `ai.ok|refused|failed|pending` در `AuditLog` با provider/model/token/redactions
+- نقش staff فقط پشت `X-KIA-Key` معتبر معنا دارد (401 وگرنه)؛ `/ai/usage` ادمین-تنها؛
+  مسیر پول: ≥ ۵۰٬۰۰۰ Đ فقط ردیف HITL می‌سازد (و دامنه درون `releaseEscrow` دوباره سد می‌گذارد)
+- **پذیرش (محقق شد)**: ۲۹/۲۹ تست بسته (fake LLM بدون شبکه) + ۹/۹ تست انتگراسیون سرور
+  با provider سازگار-با-OpenAI درون-پردازشی: قطع primary → secondary جواب می‌دهد؛
+  escrow_refund ۶۰٬۰۰۰ Đ → ردیف HITL با اسکرو هنوز FUNDED؛ سقف تمام → 429 قبل از provider؛
+  redaction روی سیم با شمارش در audit؛ **۱۸۷/۱۸۷ کل monorepo** — tsc strict تمیز روی ۷ پروژه
 
 ## فاز ۶ — مهاجرت و انتشار ⏳
 

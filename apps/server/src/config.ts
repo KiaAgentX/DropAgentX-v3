@@ -5,7 +5,8 @@
  */
 
 import { z } from 'zod';
-import { loadLlmConfigSafe, type LlmConfig } from '@dropagentx/llm';
+import type { LlmConfig } from '@dropagentx/llm';
+import { loadGatewayConfigs, loadGatewayOptions } from '@dropagentx/ai-gateway';
 
 /** dotenv-style files leave empties behind — an empty string means "unset". */
 const emptyAsUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
@@ -28,6 +29,10 @@ export interface Config {
   readonly rateLimitPerMin: number;
   /** OpenAI-compatible LLM (ADR-006) — undefined = AI cycle disabled. */
   readonly llm?: LlmConfig;
+  /** Phase 5 gateway — the ordered provider chain (primary first). */
+  readonly aiProviders?: readonly { readonly name: string; readonly config: LlmConfig }[];
+  /** Per-user daily AI token cap (default 120,000). */
+  readonly aiDailyTokenCap: number;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -39,17 +44,21 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const { KIA_ADMIN_KEY, TELEGRAM_BOT_TOKEN, V3_DEV_AUTH, PORT, RATE_LIMIT_PER_MIN } = parsed.data;
   const devAuth = V3_DEV_AUTH === '1' && !TELEGRAM_BOT_TOKEN;
   // Fail-closed (ADR-006): a PARTIAL LLM configuration refuses to boot —
-  // an all-or-nothing rule enforced at the process boundary.
-  const llm = loadLlmConfigSafe(env);
-  if (!llm.ok) {
-    throw new Error(`Invalid environment — ${llm.error.message}`);
+  // an all-or-nothing rule enforced at the process boundary, per provider.
+  const gateway = loadGatewayConfigs(env);
+  if (!gateway.ok) {
+    throw new Error(`Invalid environment — ${gateway.message}`);
   }
+  const aiOptions = loadGatewayOptions(env);
+  const primary = gateway.providers[0];
   return {
     adminKey: KIA_ADMIN_KEY,
     botToken: TELEGRAM_BOT_TOKEN,
     devAuth,
     port: PORT,
     rateLimitPerMin: RATE_LIMIT_PER_MIN,
-    ...(llm.value !== undefined ? { llm: llm.value } : {}),
+    ...(primary !== undefined ? { llm: primary.config } : {}),
+    ...(gateway.providers.length > 0 ? { aiProviders: gateway.providers } : {}),
+    aiDailyTokenCap: aiOptions.dailyTokenCap ?? 120_000,
   };
 }

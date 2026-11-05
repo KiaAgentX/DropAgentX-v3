@@ -15,10 +15,10 @@ state machine. Everything is fail-closed.
 |---|---|---|
 | ۰ | اسکلت monorepo (pnpm + turbo + TS strict + CI) | ✅ |
 | ۱ | `packages/domain` — Money صحیح، دفتر دوطرفه، اسکرو، منشور پولی — **۴۰ تست سبز** | ✅ |
-| ۲ | `apps/server` + `packages/contracts` + `packages/llm` — Fastify v5، ۱۷ endpoint، OpenAPI 3.1، امنیت fail-closed، کلاینت LLM سازگار با OpenAI — **۸۴ تست سبز** | ✅ |
-| ۳ | `apps/bot` — grammY + Orchestrator + HITL | ⏭ بعدی |
-| ۴ | `apps/dashboard` — Aurora UI + RTL + fa/en | ⏳ |
-| ۵ | `packages/ai-gateway` — multi-provider + ۶ ایجنت + ۱۶ مهارت | ⏳ |
+| ۲ | `apps/server` + `packages/contracts` + `packages/llm` — Fastify v5، ۲۱ endpoint، OpenAPI 3.1، امنیت fail-closed، کلاینت LLM سازگار با OpenAI — **۳۵ تست سبز** | ✅ |
+| ۳ | `apps/bot` — grammY + Orchestrator + HITL — **۲۰ تست سبز** | ✅ |
+| ۴ | `apps/dashboard` — Aurora UI + RTL + fa/en — **۳۵ تست سبز** | ✅ |
+| ۵ | `packages/ai-gateway` — fallback قطعی + ۶ ایجنت Zenovix + ۱۶ مهارت KIA-OS + سقف مصرف + پالایش — **۲۹+۹ تست سبز** | ✅ |
 | ۶ | مهاجرت لجسی (۴۶۶ کاربر / ۱٬۵۵۴ تراکنش / عرضه ۱۸۷٬۶۷۲ Đ) + انتشار روی Railway | ⏳ |
 
 جزئیات پذیرش هر فاز: [`docs/ROADMAP.md`](docs/ROADMAP.md)
@@ -42,7 +42,7 @@ state machine. Everything is fail-closed.
 
 ```bash
 pnpm install
-pnpm -F @dropagentx/domain test   # 40/40 سبز
+pnpm test                          # ۱۸۷/۱۸۷ سبز در کل monorepo
 pnpm typecheck                     # strict, بدون خطا
 ```
 
@@ -51,18 +51,19 @@ pnpm typecheck                     # strict, بدون خطا
 ```
 v3-core/
 ├── apps/
-│   ├── server/        ← ✅ فاز ۲: Fastify v5 + Prisma + ۱۷ endpoint + OpenAPI + امنیت
+│   ├── server/        ← ✅ فاز ۲+۵: Fastify v5 + Prisma + ۲۱ endpoint + OpenAPI + امنیت + چرخه AI
 │   ├── bot/           ← فاز ۳: grammY + Orchestrator + HITL
 │   └── dashboard/     ← فاز ۴: Aurora UI (fa/en, RTL)
 ├── packages/
 │   ├── domain/        ← ✅ فاز ۱: هسته‌ی خالص (صفر وابستگی runtime)
-│   ├── contracts/     ← ✅ فاز ۲: قراردادهای zod + OpenAPI 3.1 + کلاینت تایپ‌دار
-│   └── llm/           ← ✅ فاز ۲: کلاینت LLM سازگار با OpenAI (ADR-006)
+│   ├── contracts/     ← ✅ فاز ۲+۵: قراردادهای zod + OpenAPI 3.1 + کلاینت تایپ‌دار
+│   ├── llm/           ← ✅ فاز ۲: کلاینت LLM سازگار با OpenAI (ADR-006)
+│   └── ai-gateway/    ← ✅ فاز ۵: ۶ ایجنت + ۱۶ مهارت + fallback قطعی + سقف مصرف (ADR-008)
 └── docs/
     ├── ROADMAP.md
     ├── ARCHITECTURE.md
     ├── PRODUCT-THESIS.md
-    └── adr/           ← ADR-001…006
+    └── adr/           ← ADR-001…008
 ```
 
 ## قانون‌های مقدس (non-negotiable)

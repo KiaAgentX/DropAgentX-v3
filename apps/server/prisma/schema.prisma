@@ -89,3 +89,52 @@ model HitlRequest {
   @@index([status])
   @@index([escrowId])
 }
+
+// ── Phase 5: AI cycle ─────────────────────────────────────────────────────────
+
+// Per-user AI consumption bill (PRODUCT-THESIS layer 3: transparent per-user
+// spend). The daily cap is computed from SUM(totalTokens) over the UTC day.
+model AiUsage {
+  id               String   @id @default(cuid())
+  userId           String
+  agent            String
+  provider         String
+  model            String
+  kind             String // chat | route
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  outcome          String // ok | refused | failed | pending
+  at               DateTime @default(now())
+
+  @@index([userId, at])
+}
+
+// Marketplace listings (escrow marketplace). Phase 6 migration carries the
+// 30 legacy products here; delivery content will live in deliveryPayload so
+// files survive host loss (legacy lesson).
+model Product {
+  id              String   @id
+  sellerId        String
+  title           String
+  description     String
+  priceDin        Int
+  category        String?
+  deliveryPayload String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([active])
+  @@index([sellerId])
+}
+
+// Knowledge base (RAG-lite) — grounds agent answers; staff writes via kb_upsert.
+model KbEntry {
+  id        String   @id
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([title])
+}

@@ -11,6 +11,7 @@ import { V3Store } from './persistence.js';
 import { API_ROUTES, type RouteContext } from './api.js';
 import { requireAdmin, rateLimit } from './guards.js';
 import { toHttpError, ValidationFailure } from './errors.js';
+import { buildAiGateway, type AssembledAi } from './ai.js';
 
 export const OPENAPI_INFO: C.OpenApiInfo = {
   title: 'DropAgentX v3 — Unified Core API',
@@ -24,6 +25,8 @@ export interface BuiltApp {
   readonly store: V3Store;
   readonly config: Config;
   readonly prisma: PrismaClient;
+  /** Phase 5 — present only when the LLM layer is configured (ADR-006). */
+  readonly ai?: AssembledAi;
 }
 
 export async function buildApp(config: Config, prisma?: PrismaClient): Promise<BuiltApp> {
@@ -32,7 +35,17 @@ export async function buildApp(config: Config, prisma?: PrismaClient): Promise<B
   const store = new V3Store(prismaClient);
   await store.ensureSystemAccounts();
 
-  const ctx: RouteContext = { store, config };
+  // Phase 5: assemble the AI gateway ONLY when providers exist (fail-closed).
+  const ai = config.aiProviders !== undefined && config.aiProviders.length > 0
+    ? buildAiGateway({
+        store,
+        prisma: prismaClient,
+        providers: config.aiProviders,
+        dailyTokenCap: config.aiDailyTokenCap,
+      })
+    : undefined;
+
+  const ctx: RouteContext = { store, config, ...(ai !== undefined ? { ai } : {}) };
 
   // Meta endpoints (not part of the business registry).
   app.get('/api/v1/openapi.json', async () => C.buildOpenApiDoc(API_ROUTES, OPENAPI_INFO));
@@ -80,7 +93,12 @@ export async function buildApp(config: Config, prisma?: PrismaClient): Promise<B
             if (!parsed.success) throw validation(parsed.error.issues);
             body = parsed.data;
           }
-          const data = await route.handler(ctx, { params, query, body });
+          const data = await route.handler(ctx, {
+            params,
+            query,
+            body,
+            headers: req.headers as Record<string, string | string[] | undefined>,
+          });
           return await reply.code(route.status ?? 200).send(data);
         } catch (err) {
           const mapped = toHttpError(err);
@@ -93,7 +111,7 @@ export async function buildApp(config: Config, prisma?: PrismaClient): Promise<B
     });
   }
 
-  return { app, store, config, prisma: prismaClient };
+  return { app, store, config, prisma: prismaClient, ...(ai !== undefined ? { ai } : {}) };
 }
 
 function validation(issues: readonly { path: PropertyKey[]; message: string }[]): ValidationFailure {

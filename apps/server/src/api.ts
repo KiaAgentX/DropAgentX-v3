@@ -12,16 +12,23 @@ import { z } from 'zod';
 import type { V3Store, ApplyResult } from './persistence.js';
 import type { Config } from './config.js';
 import { DomainFailure, HttpFailure } from './errors.js';
+import { verifyKiaKey } from './auth.js';
+import { AGENTS, AGENT_ORDER, SKILLS } from '@dropagentx/ai-gateway';
+import type { AssembledAi } from './ai.js';
 
 export interface RouteContext {
   readonly store: V3Store;
   readonly config: Config;
+  /** Phase 5 — assembled when the LLM layer is configured; undefined = AI disabled. */
+  readonly ai?: AssembledAi;
 }
 
 export interface RouteInput {
   readonly params: Record<string, string>;
   readonly query: Record<string, string>;
   readonly body: unknown;
+  /** Raw request headers — the AI routes need x-kia-key for staff-role gating. */
+  readonly headers?: Record<string, string | string[] | undefined>;
 }
 
 export interface ApiRoute extends C.ApiRouteDef {
@@ -665,7 +672,136 @@ export const API_ROUTES: ApiRoute[] = [
     response: C.hitlSweepResponseSchema,
     handler: async ({ store }) => ({ expired: await store.expireOverdueHitl(new Date()) }),
   },
+
+  // ── Phase 5: AI cycle (Zenovix gateway) ──────────────────────────────────
+  {
+    method: 'post',
+    path: '/ai/chat',
+    operationId: 'aiChat',
+    summary: 'Ask the Zenovix agent team — routing, skills, metering, redaction and audit run server-side',
+    tag: 'ai',
+    security: 'public',
+    body: C.aiChatRequestSchema,
+    response: C.aiChatResponseSchema,
+    handler: async (ctx, input) => {
+      const ai = requireAi(ctx);
+      const body = input.body as C.AiChatRequest;
+      // Fail-closed staff gate: role:"staff" is only honored behind the admin key.
+      if (body.role === 'staff' && !verifyKiaKey(headerValue(input.headers, 'x-kia-key'), ctx.config.adminKey)) {
+        throw new HttpFailure(401, 'UNAUTHORIZED', 'Staff role requires a valid X-KIA-Key.');
+      }
+      await ai.meter.ensureAllowance(body.userId);
+      const result = await ai.gateway.ask({
+        userId: body.userId,
+        role: body.role,
+        text: body.text,
+        language: body.language,
+        ...(body.directAgent !== undefined ? { directAgent: body.directAgent } : {}),
+        ...(body.history !== undefined ? { history: body.history } : {}),
+        ...(body.knowledge !== undefined ? { knowledge: body.knowledge } : {}),
+      });
+      await ai.meter.flush();
+      if (!result.ok) {
+        if (result.code === 'AI_BUDGET_EXCEEDED') {
+          throw new HttpFailure(429, result.code, result.message);
+        }
+        throw new HttpFailure(502, result.code, result.message);
+      }
+      return {
+        reply: result.reply,
+        agent: result.agent,
+        via: result.via,
+        provider: result.provider,
+        toolTraces: result.toolTraces,
+        usage: result.usage,
+        pendingApproval: result.pendingApproval,
+        redactions: result.redactions,
+      };
+    },
+  },
+  {
+    method: 'get',
+    path: '/ai/agents',
+    operationId: 'aiAgents',
+    summary: 'The 6 Zenovix agents with the skills each one may call',
+    tag: 'ai',
+    security: 'public',
+    response: C.aiAgentsListResponseSchema,
+    handler: async () => ({ items: agentViews() }),
+  },
+  {
+    method: 'get',
+    path: '/ai/skills',
+    operationId: 'aiSkills',
+    summary: 'The 16 KIA-OS skills with authorization metadata',
+    tag: 'ai',
+    security: 'public',
+    response: C.aiSkillsListResponseSchema,
+    handler: async () => ({ items: skillViews() }),
+  },
+  {
+    method: 'get',
+    path: '/ai/usage',
+    operationId: 'aiUsage',
+    summary: 'Per-user token usage against the daily cap (admin key required)',
+    tag: 'ai',
+    security: 'admin',
+    query: z.object({ userId: z.string().min(1) }),
+    response: C.aiUsageViewSchema,
+    handler: async (ctx, input) => {
+      const ai = requireAi(ctx);
+      const userId = input.query.userId!;
+      await ai.meter.ensureAllowance(userId);
+      const used = await ai.meter.usedTodayOf(userId);
+      const cap = ai.meter.dailyTokenCap;
+      return { userId, usedToday: used, cap, remainingToday: Math.max(0, cap - used) };
+    },
+  },
 ];
+
+// ── Phase 5 helpers ──────────────────────────────────────────────────────────
+
+function requireAi(ctx: RouteContext): AssembledAi {
+  if (ctx.ai === undefined) {
+    throw new HttpFailure(503, 'AI_DISABLED', 'The AI cycle is not configured — set OPENAI_BASE_URL / OPENAI_API_KEY / MODEL (ADR-006).');
+  }
+  return ctx.ai;
+}
+
+function headerValue(headers: RouteInput['headers'], name: string): string | undefined {
+  if (headers === undefined) return undefined;
+  const raw = headers[name];
+  if (raw === undefined) return undefined;
+  return Array.isArray(raw) ? raw[0] : raw;
+}
+
+function agentViews(): C.AiAgentView[] {
+  return AGENT_ORDER.map((name) => {
+    const def = AGENTS[name];
+    return {
+      name,
+      emoji: def.emoji,
+      titleFa: def.titleFa,
+      titleEn: def.titleEn,
+      description: def.description,
+      skills: Object.values(SKILLS)
+        .filter((s) => s.allowedAgents.includes(name))
+        .map((s) => s.id),
+    };
+  });
+}
+
+function skillViews(): C.AiSkillView[] {
+  return Object.values(SKILLS).map((s) => ({
+    id: s.id,
+    kind: s.kind,
+    titleFa: s.titleFa,
+    titleEn: s.titleEn,
+    description: s.description,
+    allowedAgents: [...s.allowedAgents],
+    staffOnly: s.staffOnly === true,
+  }));
+}
 
 function hitlToView(row: {
   id: string;

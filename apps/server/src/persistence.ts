@@ -380,6 +380,25 @@ export class V3Store {
     return -(agg._sum.amount ?? 0);
   }
 
+  /** Recent ledger entries touching one account — powers the AI wallet_history skill. */
+  async recentPostingsFor(
+    accountId: string,
+    limit: number,
+  ): Promise<{ txId: string; amount: number; memo: string | null; at: string }[]> {
+    const rows = await this.prisma.posting.findMany({
+      where: { accountId },
+      orderBy: { id: 'desc' },
+      take: Math.max(1, Math.min(50, limit)),
+      include: { tx: { select: { id: true, memo: true, at: true } } },
+    });
+    return rows.map((r) => ({
+      txId: r.tx.id,
+      amount: r.amount,
+      memo: r.tx.memo,
+      at: r.tx.at.toISOString(),
+    }));
+  }
+
   async economySummary() {
     const [accounts, sums, escrowOpen, mintedThisYear] = await Promise.all([
       this.prisma.account.findMany(),

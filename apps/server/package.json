@@ -14,6 +14,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@dropagentx/ai-gateway": "workspace:*",
     "@dropagentx/contracts": "workspace:*",
     "@dropagentx/domain": "workspace:*",
     "@dropagentx/llm": "workspace:*",
