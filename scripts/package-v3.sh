@@ -76,9 +76,10 @@ FILES=$(unzip -l "$OUT/$NAME" | tail -1 | awk '{print $2}')
 echo "── package: $OUT/$NAME (${FILES} files)"
 
 echo "── QC 6: layout purity inside the zip"
-STALE=$(unzip -l "$OUT/$NAME" | grep -cE ' \**(apps|packages)/' || true)
+LISTING=$(unzip -l "$OUT/$NAME")
+STALE=$(grep -cE ' (apps|packages)/' <<<"$LISTING" || true)
 if [ "$STALE" -gt 0 ]; then echo "FAIL: $STALE stale apps/|packages/ entries in the zip"; exit 1; fi
-if ! unzip -l "$OUT/$NAME" | grep -q ' front/' || ! unzip -l "$OUT/$NAME" | grep -q ' back/'; then
+if ! grep -q ' front/' <<<"$LISTING" || ! grep -q ' back/' <<<"$LISTING"; then
   echo "FAIL: front/ or back/ missing from the zip"; exit 1
 fi
 echo "   ok (front/ + back/ only, no legacy paths)"
