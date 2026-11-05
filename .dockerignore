@@ -1,0 +1,26 @@
+# .dockerignore — the image ships CODE, never host state or secrets.
+# (Runtime data lives on the Railway volume mounted at /app/db.)
+
+# git + CI metadata (the repo travels by git, not by image)
+.git
+.github
+.turbo
+
+# secrets and env templates (blank .env.example is allowed through)
+.env
+.env.*
+!.env.example
+
+# host-installed dependencies and build outputs
+node_modules
+**/node_modules
+dist
+**/dist
+
+# runtime data — the volume owns this, not the image
+db
+**/db
+
+# local noise
+*.log
+download
