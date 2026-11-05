@@ -21,7 +21,7 @@
 | `OPENAI_API_KEY` | اعتبار Bearer | `sk-…` |
 | `MODEL` | نام مدل در بدنه‌ی درخواست | `glm-4.7` |
 
-پیاده‌سازی در `packages/llm`:
+پیاده‌سازی در `back/llm`:
 
 - بدون SDK شخص ثالث — `fetch` خالص Node، صفر وابستگی runtime به‌جز zod برای اعتبارسنجی پاسخ.
 - خطاها **Result** تایپ‌دار: `NETWORK / TIMEOUT / PROVIDER_AUTH / RATE_LIMITED / PROVIDER_ERROR / MALFORMED_RESPONSE`.

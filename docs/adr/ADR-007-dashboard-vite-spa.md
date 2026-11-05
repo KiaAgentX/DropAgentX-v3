@@ -16,7 +16,7 @@
 
 ## Decision
 
-`apps/dashboard` یک **Vite + React 19 + Tailwind v4 SPA** است:
+`front/dashboard` یک **Vite + React 19 + Tailwind v4 SPA** است:
 
 1. **بدون SSR** — پنل ادمین هیچ نیاز SEO/سرور-رندر ندارد؛ SPA کوچک‌ترین باندل و ساده‌ترین عملیات را می‌دهد.
 2. **Hash routing بدون وابستگی router** — استقرار به‌صورت فایل‌های استاتیک کنار Fastify (فاز ۶) بدون هیچ rewrite rule؛ روی موبایل هم مسیرها بی‌وقفه کار می‌کنند.

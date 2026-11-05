@@ -3,10 +3,10 @@
 ```
                         ┌─────────────────────────────────────────────┐
                         │                ADAPTERS (بیرون)             │
-                        │  apps/server (Fastify+Prisma)               │
-                        │  apps/bot (grammY)                          │
-                        │  apps/dashboard (Aurora UI)                 │
-                        │  packages/ai-gateway                        │
+                        │  back/server (Fastify+Prisma)               │
+                        │  back/bot (grammY)                          │
+                        │  front/dashboard (Aurora UI)                 │
+                        │  back/ai-gateway                        │
                         │  migrator (legacy DB)                       │
                         └───────────────┬─────────────────────────────┘
                                         │ ports (interface ها)
@@ -41,6 +41,6 @@ buyer ──fund──▶ escrow ──release──▶ seller (net = amount −
         refund: escrow ──▶ buyer (کامل، بدون مالیات)
 ```
 
-- هر جابه‌جایی = یک `Transaction` با مجموع صفر در `packages/domain/src/ledger.ts`
+- هر جابه‌جایی = یک `Transaction` با مجموع صفر در `back/domain/src/ledger.ts`
 - `mint:genesis` تنها منبع پول، `burn:void` تنها مقصد نابودی (ماده‌ی ۴ منشور)
 - ادعاها با `trialBalance(state).balanced` و `circulatingSupply(state)` قابل اثبات‌اند.

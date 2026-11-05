@@ -19,7 +19,7 @@ import { buildApp, type BuiltApp } from '@dropagentx/server';
 import { createDashboardClient, errorKey } from '../src/lib/api.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const serverDir = path.join(here, '..', '..', 'server');
+const serverDir = path.join(here, '..', '..', '..', 'back', 'server');
 const tmp = mkdtempSync(path.join(tmpdir(), 'v3-dash-'));
 process.env.DATABASE_URL = `file:${path.join(tmp, 'v3-dash-test.db')}`;
 

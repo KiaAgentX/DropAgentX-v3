@@ -12,7 +12,7 @@
 - GitHub Actions CI (install → typecheck → test)
 - **پذیرش**: `pnpm install && pnpm typecheck && pnpm test` روی ماشین تمیز سبز است.
 
-## فاز ۱ — هسته‌ی دامنه (`packages/domain`) ✅
+## فاز ۱ — هسته‌ی دامنه (`back/domain`) ✅
 
 - `money.ts`: نوع `Din` — عدد صحیح برندشده، `mulBps` با floor، گارد سرریز
 - `ledger.ts`: دفتر دوطرفه تغییرناپذیر + idempotency key + قوانین جهت حساب (mint/burn/user/escrow/treasury)
@@ -23,17 +23,17 @@
   تست‌های کلیدی: پایایی در ۳۰۰ عملیات تصادفی seed-دار، replay با idempotency،
   مسیر‌های غیرمجاز اسکرو رد می‌شوند، مالیات دقیقاً ۱۰٪ با floor.
 
-## فاز ۲ — سرور (`apps/server`) ✅
+## فاز ۲ — سرور (`back/server`) ✅
 
-- Fastify v5 + Prisma (SQLite با `schema.prisma` قابل‌انتقال به PG) — `apps/server`
-- `packages/contracts`: قراردادهای zod → تولید OpenAPI 3.1 بومی (بدون پل شخص ثالث، `z.toJSONSchema`)
+- Fastify v5 + Prisma (SQLite با `schema.prisma` قابل‌انتقال به PG) — `back/server`
+- `back/contracts`: قراردادهای zod → تولید OpenAPI 3.1 بومی (بدون پل شخص ثالث، `z.toJSONSchema`)
 - **۱۷ endpoint** از یک رجیستری واحد: قرارداد + امنیت + handler + داکیومنت از یک تعریف (realization واقعی ADR-005)
 - لایه‌ی امنیت: `X-KIA-Key` با مقایسه‌ی زمان-ثابت و fail-closed (بدون کانفیگ → 503 ADMIN_DISABLED)،
   احراز Telegram initData با HMAC-SHA256 رسمی (آماده‌ی فاز ۳)، rate limit درون-حافظه‌ای، audit log
 - آداپتر persistence: دفتر کامل در هر تراکنش تعاملی load → اجرای دامنه‌ی خالص → persist؛
   Outbox برای `DomainEvent`ها + ردیف audit؛ idempotency با unique constraint (مسابقه‌ی retry دوبار پول جابه‌جا نمی‌کند)
 - `/api/v1/openapi.json` + صفحه‌ی مرور `/api/v1/docs`
-- `packages/llm` (**ADR-006**، به انتخاب مالک): کلاینت LLM سازگار با OpenAI بدون SDK شخص ثالث —
+- `back/llm` (**ADR-006**، به انتخاب مالک): کلاینت LLM سازگار با OpenAI بدون SDK شخص ثالث —
   سه متغیر `OPENAI_BASE_URL` / `OPENAI_API_KEY` / `MODEL`، همه با هم یا هیچ‌کدام (کانفیگ ناقص → بوت نمی‌شود)،
   خطاهای Result تایپ‌دار، تایم‌اوت واقعی با AbortController، کلید هرگز در خطاها/لاگ‌ها فاش نمی‌شود
 - کلاینت تایپ‌دار `createV3Client` در contracts — حلقه‌ی ADR-005 بسته شد: پاسخ‌ها با همان
@@ -45,7 +45,7 @@
   رض حساب منفی، 401/404/422/429 درست؛ **۸۴/۸۴ کل monorepo** (domain ۴۰ + llm ۱۷ + contracts ۱۱ + server ۱۶)؛
   tsc strict تمیز؛ بوت واقعی سرور با سه متغیر LLM و کانفیگ ناقص رد شد (curl-تست).
 
-## فاز ۳ — ربات (`apps/bot`) ✅
+## فاز ۳ — ربات (`back/bot`) ✅
 
 - grammY (webhook روی Railway، polling در توسعه) + **Orchestrator خالص** (بدون grammY — قابل‌تست آفلاین)
 - صف HITL روی سرور (`/hitl/*` — ۶ endpoint جدید در contracts و OpenAPI): تایید ادمین، تسویه را **در همان تراکنش** اجرا می‌کند؛ id قطعی `hitl:<id>:approve` → تایید دوباره هرگز دوباره پرداخت نمی‌کند؛ TTL sweep (۲۴h پیش‌فرض)
@@ -56,7 +56,7 @@
   **۱۱۴/۱۱۴ کل monorepo** (domain ۴۰ + llm ۱۷ + contracts ۱۱ + server ۲۶ + bot ۲۰)؛ tsc strict تمیز؛
   بوت دودی سرور: `llmConfigured:true` با سه متغیر ADR-006، ۲۰ مسیر OpenAPI با تگ hitl.
 
-## فاز ۴ — داشبورد (`apps/dashboard`) ✅
+## فاز ۴ — داشبورد (`front/dashboard`) ✅
 
 - **ADR-007**: Vite + React 19 + Tailwind v4 SPA — بدون SSR؛ hash routing بدون وابستگی router؛ در فاز ۶ همان `dist/` توسط Fastify استاتیک سرو می‌شود
 - Aurora UI (دارک، شیشه‌ای، سه هاله‌ی ملایم) + RTL پیش‌فرض + fa/en با برابری کلیدی دوطرفه (تست + تایپ) + فونت Vazirmatn self-hosted با `font-display: swap`
@@ -69,9 +69,9 @@
   replay بدون پرداخت دوباره، overdraft رد، گیت HITL روی ۶۰٬۰۰۰ Đ تسویه‌ی اتمی، مهمان ۴۰۱ می‌گیرد؛
   tsc strict تمیز؛ باندل تولیدی ۱۱۲KB gzip؛ Lighthouse موبایل روی ماشین ادمین اجرا می‌شود (باندل/فونت swap آماده‌ی ≥ ۹۰).
 
-## فاز ۵ — چرخه‌ی AI (`packages/ai-gateway`) ✅
+## فاز ۵ — چرخه‌ی AI (`back/ai-gateway`) ✅
 
-- لایه‌ی مدل قفل شد (**ADR-006**): فقط API سازگار با OpenAI؛ کلاینت در `packages/llm` از فاز ۲
+- لایه‌ی مدل قفل شد (**ADR-006**): فقط API سازگار با OpenAI؛ کلاینت در `back/llm` از فاز ۲
 - **ADR-008**: AI Gateway چندسرویس‌دهنده — سه اسلات با همان شکل ADR-006
   (`OPENAI_BASE_URL/API_KEY/MODEL` + پسوند `_2`/`_3`)، هر اسلات همه‌یا-هیچ؛
   fallback قطعی primary → secondary → fallback، نام برنده در پاسخ و audit ثبت می‌شود
@@ -93,11 +93,11 @@
 
 ## فاز ۶ — مهاجرت و انتشار ✅
 
-- `apps/server/scripts/migrate-legacy.ts`: ۴۶۶ کاربر → حساب‌های `user:tg:<id>`،
+- `back/server/scripts/migrate-legacy.ts`: ۴۶۶ کاربر → حساب‌های `user:tg:<id>`،
   **یک تراکنش genesis** با idempotency قطعی (`legacy:genesis:v1`) به Σ floor(اعتبارات) هر شهروند؛
   memo همان تراکنش = ردیف تعدیل شفاف گپ −۶۳ Đ (۹×۵۰ خرید بدون ردیف tx = −۴۵۰ + اعتبار دستی مالک +۳۸۷)؛
   ۳۰ محصول → مدل Product؛ اجرای دوباره هرگز دو برابر ضرب نمی‌کند (بازپخش امن)
-- `apps/server/scripts/genesis-proof.ts`: ممیزی خارجی با SQL خام (بدون Prisma/دامنه) —
+- `back/server/scripts/genesis-proof.ts`: ممیزی خارجی با SQL خام (بدون Prisma/دامنه) —
   `PROOF OK: Σ کیف‌ها ۱۸۷٬۶۷۲ Đ · Σ پستینگ‌ها 0 · mint منفی/burn مثبت`
 - سرویس واحد Railway: `scripts/single-service.ts` — یک پروسه = Fastify + grammY + sweep؛
   webhook روی `/api/v1/bot/webhook` (آداپتور std/http گرام‌وای)؛ Dockerfile چندمرحله‌ای +

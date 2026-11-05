@@ -9,13 +9,13 @@ WORKDIR /app
 
 FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json turbo.json .npmrc ./
-COPY apps/server/package.json apps/server/
-COPY apps/bot/package.json apps/bot/
-COPY apps/dashboard/package.json apps/dashboard/
-COPY packages/domain/package.json packages/domain/
-COPY packages/contracts/package.json packages/contracts/
-COPY packages/llm/package.json packages/llm/
-COPY packages/ai-gateway/package.json packages/ai-gateway/
+COPY back/server/package.json back/server/
+COPY back/bot/package.json back/bot/
+COPY front/dashboard/package.json front/dashboard/
+COPY back/domain/package.json back/domain/
+COPY back/contracts/package.json back/contracts/
+COPY back/llm/package.json back/llm/
+COPY back/ai-gateway/package.json back/ai-gateway/
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store pnpm install --frozen-lockfile
 
 FROM deps AS pruned

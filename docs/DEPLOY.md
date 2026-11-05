@@ -35,9 +35,9 @@ the migration is offline and local):
 pnpm install
 pnpm -F @dropagentx/server exec tsx scripts/migrate-legacy.ts \
   --legacy /path/to/marketplace-20260924-0400.db \
-  --target "file:$PWD/apps/server/db/v3.db"
+  --target "file:$PWD/back/server/db/v3.db"
 pnpm -F @dropagentx/server exec tsx scripts/genesis-proof.ts \
-  --db "file:$PWD/apps/server/db/v3.db"     # must print: PROOF OK — Σ 187,672 Đ
+  --db "file:$PWD/back/server/db/v3.db"     # must print: PROOF OK — Σ 187,672 Đ
 ```
 
 Upload the produced `v3.db` into the Railway volume (Railway shell: stop the
@@ -52,7 +52,7 @@ curl -s https://<app>.up.railway.app/api/v1/economy | jq '.circulatingSupply'   
 curl -s -H "x-kia-key: $KIA_ADMIN_KEY" https://<app>.up.railway.app/api/v1/ai/skills | jq '.items | length'   # 16
 ```
 
-The bot answers `/balance` in Telegram; the dashboard (`apps/dashboard`,
+The bot answers `/balance` in Telegram; the dashboard (`front/dashboard`,
 served statically in a later step or via Vercel) manages the rest.
 
 ## Notes

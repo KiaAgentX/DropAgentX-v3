@@ -35,7 +35,7 @@ actions were gated.
    closed — raw model text is never relayed. This keeps every OpenAI-compatible
    endpoint usable identically and the whole loop testable offline.
 
-4. **Exactly 16 skills, one registry.** `packages/ai-gateway/src/skills.ts` owns
+4. **Exactly 16 skills, one registry.** `back/ai-gateway/src/skills.ts` owns
    identity, fa/en metadata, kind (`read|write|money|staff`), agent allow-lists
    and zod argument schemas. The gate (unknown skill / wrong agent / non-staff
    on a staff skill / invalid args) runs BEFORE the executor port — refusals

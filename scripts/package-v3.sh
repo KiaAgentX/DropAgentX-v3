@@ -36,7 +36,7 @@ if [ "${TESTS:-0}" -lt 180 ]; then echo "FAIL: expected ≥180 tests, got ${TEST
 echo "   ok (${TESTS} tests green)"
 
 echo "── QC 4: version consistency"
-for f in packages/*/package.json apps/*/package.json; do
+for f in back/*/package.json front/*/package.json; do
   V=$(node -p "require('./$f').version")
   [ "$V" = "$VERSION" ] || { echo "FAIL: $f is $V ≠ $VERSION"; exit 1; }
 done
@@ -60,9 +60,10 @@ cat > "$STAGE/HANDOFF.md" << EOF
 Six phases delivered on this commit: domain core, server+contracts, bot+HITL,
 Aurora dashboard, AI gateway (6 agents / 16 skills), legacy migration + release.
 
-- Monorepo: pnpm + turbo, TypeScript strict, ${TESTS} tests green.
+- Layout: front/ (Aurora dashboard) + back/ (server, bot, domain, contracts,
+  llm, ai-gateway) — pnpm + turbo, TypeScript strict, ${TESTS} tests green.
 - Deploy: docs/DEPLOY.md (Railway single service, Dockerfile + railway.json).
-- Migration: apps/server/scripts/migrate-legacy.ts (replay-safe, proof included).
+- Migration: back/server/scripts/migrate-legacy.ts (replay-safe, proof included).
 - Sacred rules: integer D, double-entry closure, escrow state machine,
   HITL >= 50,000 D, Result errors, secrets never in git.
 EOF
