@@ -1,6 +1,6 @@
 {
   "name": "@dropagentx/server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "DropAgentX v3 server: Fastify + Prisma adapter over the pure domain core. Admin service API with OpenAPI from zod contracts.",
   "type": "module",
   "main": "./src/index.ts",
@@ -16,6 +16,7 @@
   "dependencies": {
     "@dropagentx/contracts": "workspace:*",
     "@dropagentx/domain": "workspace:*",
+    "@dropagentx/llm": "workspace:*",
     "@prisma/client": "^6.16.2",
     "fastify": "^5.3.3",
     "zod": "^4.1.5"

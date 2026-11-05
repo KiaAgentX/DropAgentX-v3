@@ -96,7 +96,13 @@ export const API_ROUTES: ApiRoute[] = [
     tag: 'system',
     security: 'public',
     response: C.healthResponseSchema,
-    handler: async () => ({ status: 'ok', service: 'dropagentx-v3-server', version: '0.2.0' }),
+    handler: async ({ config }) => ({
+      status: 'ok',
+      service: 'dropagentx-v3-server',
+      version: '0.3.0',
+      llmConfigured: config.llm !== undefined,
+      llmModel: config.llm?.model ?? null,
+    }),
   },
   {
     method: 'get',

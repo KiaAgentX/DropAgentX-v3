@@ -5,9 +5,11 @@
  */
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { createV3Client, type FetchLike } from '@dropagentx/contracts';
 import { buildApp, type BuiltApp } from '../src/index.js';
 import { makeTestInitData, verifyTelegramInitData } from '../src/auth.js';
 import { resetRateLimiter } from '../src/guards.js';
+import { loadConfig } from '../src/config.js';
 
 const ADMIN_KEY = 'v3-test-admin-key-0123456789abcdef';
 const ADMIN = { 'x-kia-key': ADMIN_KEY, 'content-type': 'application/json' };
@@ -320,5 +322,96 @@ describe('phase 2 — server over the pure domain', () => {
     const tampered = initData.slice(0, -3) + '000';
     expect(verifyTelegramInitData(tampered, token)).toBeNull();
     expect(verifyTelegramInitData(initData, '999999:OTHER-TOKEN-xyz0123456789')).toBeNull();
+  });
+
+  it('reports LLM configuration in health without leaking secrets (ADR-006)', async () => {
+    const res = await built.app.inject({ method: 'GET', url: '/api/v1/health' });
+    expect(res.json()).toMatchObject({ llmConfigured: false, llmModel: null });
+
+    const llmBuilt = await buildApp({
+      adminKey: ADMIN_KEY,
+      botToken: undefined,
+      devAuth: false,
+      port: 8787,
+      rateLimitPerMin: 100_000,
+      llm: { baseUrl: 'https://llm.test/v1', apiKey: 'sk-secret-1234567890', model: 'glm-4.7' },
+    });
+    try {
+      const health = await llmBuilt.app.inject({ method: 'GET', url: '/api/v1/health' });
+      const body = health.json() as { llmConfigured: boolean; llmModel: string | null };
+      expect(body.llmConfigured).toBe(true);
+      expect(body.llmModel).toBe('glm-4.7');
+      expect(JSON.stringify(body)).not.toContain('sk-secret');
+      expect(JSON.stringify(body)).not.toContain('llm.test');
+    } finally {
+      await llmBuilt.app.close();
+      await llmBuilt.prisma.$disconnect();
+    }
+  });
+
+  it('refuses a PARTIAL LLM configuration at boot (ADR-006 fail-closed)', () => {
+    expect(() =>
+      loadConfig({ DATABASE_URL: 'file:test.db', OPENAI_BASE_URL: 'https://llm.test/v1' } as NodeJS.ProcessEnv),
+    ).toThrow(/MODEL/);
+    expect(() =>
+      loadConfig({ DATABASE_URL: 'file:test.db', MODEL: 'glm-4.7' } as NodeJS.ProcessEnv),
+    ).toThrow(/OPENAI_API_KEY/);
+  });
+
+  it('typed client drives the real app over inject — the ADR-005 loop is closed', async () => {
+    const injectFetch: FetchLike = async (input, init) => {
+      const res = await built.app.inject({
+        method: (init?.method as 'GET' | 'POST') ?? 'GET',
+        url: input,
+        ...(init?.headers !== undefined ? { headers: init.headers as Record<string, string> } : {}),
+        ...(init?.body !== undefined ? { payload: init.body as string } : {}),
+      });
+      return new Response(res.body, { status: res.statusCode, headers: res.headers });
+    };
+    const admin = createV3Client({
+      baseUrl: 'http://v3.test/api/v1',
+      headers: { 'x-kia-key': ADMIN_KEY },
+      fetchImpl: injectFetch,
+    });
+
+    expect((await admin.createAccount({ id: 'user:client', label: 'کاربر کلاینت' })).ok).toBe(true);
+    expect((await admin.createAccount({ id: 'user:peer' })).ok).toBe(true);
+
+    const minted = await admin.mint({ accountId: 'user:client', amount: 100, idempotencyKey: 'client-mint-1' });
+    expect(minted.ok).toBe(true);
+    if (minted.ok) expect(minted.value).toMatchObject({ balance: 100, replayed: false });
+
+    const remint = await admin.mint({ accountId: 'user:client', amount: 100, idempotencyKey: 'client-mint-1' });
+    expect(remint.ok).toBe(true);
+    if (remint.ok) expect(remint.value.replayed).toBe(true);
+
+    const created = await admin.createEscrow({ buyerId: 'user:client', sellerId: 'user:peer', amount: 40 });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const escrowId = created.value.escrow.id;
+    expect(escrowId).toMatch(/^esc_/); // id auto-generated when omitted
+
+    expect((await admin.fundEscrow(escrowId)).ok).toBe(true);
+    expect((await admin.deliverEscrow(escrowId, { deliveryRef: 'payload:cli' })).ok).toBe(true);
+    const released = await admin.releaseEscrow(escrowId);
+    expect(released.ok).toBe(true);
+    if (released.ok) {
+      expect(released.value.escrow.status).toBe('RELEASED');
+      expect(released.value.txId).toEqual(expect.any(String));
+    }
+
+    expect((await admin.balance('user:client')).ok).toBe(true);
+    const buyer = await admin.balance('user:client');
+    if (buyer.ok) expect(buyer.value.balance).toBe(60); // 100 − 40 funded
+    const seller = await admin.balance('user:peer');
+    if (seller.ok) expect(seller.value.balance).toBe(36); // 40 − 10% tax
+
+    const refused = await createV3Client({ baseUrl: 'http://v3.test/api/v1', fetchImpl: injectFetch })
+      .mint({ accountId: 'user:client', amount: 1 });
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) {
+      expect(refused.error.status).toBe(401);
+      expect(refused.error.code).toBe('ADMIN_KEY_REQUIRED');
+    }
   });
 });

@@ -33,9 +33,17 @@
 - آداپتر persistence: دفتر کامل در هر تراکنش تعاملی load → اجرای دامنه‌ی خالص → persist؛
   Outbox برای `DomainEvent`ها + ردیف audit؛ idempotency با unique constraint (مسابقه‌ی retry دوبار پول جابه‌جا نمی‌کند)
 - `/api/v1/openapi.json` + صفحه‌ی مرور `/api/v1/docs`
-- **پذیرش (محقق شد)**: ۱۳/۱۳ تست انتگراسیون سبز روی SQLite واقعی — چرخه‌ی کامل escrow از HTTP
+- `packages/llm` (**ADR-006**، به انتخاب مالک): کلاینت LLM سازگار با OpenAI بدون SDK شخص ثالث —
+  سه متغیر `OPENAI_BASE_URL` / `OPENAI_API_KEY` / `MODEL`، همه با هم یا هیچ‌کدام (کانفیگ ناقص → بوت نمی‌شود)،
+  خطاهای Result تایپ‌دار، تایم‌اوت واقعی با AbortController، کلید هرگز در خطاها/لاگ‌ها فاش نمی‌شود
+- کلاینت تایپ‌دار `createV3Client` در contracts — حلقه‌ی ADR-005 بسته شد: پاسخ‌ها با همان
+  اسکیمای zod اعتبارسنجی می‌شوند و راند-تریپ واقعی روی `app.inject` تست شده است
+- health شامل `llmConfigured` / `llmModel` است — بدون کلید و بدون URL (فقط حضور کانفیگ)
+- مقادیر خالی در env (مثل `TELEGRAM_BOT_TOKEN=` در فایل .env) = تعریف‌نشده، نه خطا
+- **پذیرش (محقق شد)**: ۱۶/۱۶ تست انتگراسیون سبز روی SQLite واقعی — چرخه‌ی کامل escrow از HTTP
   (۱۰۰ → فروشنده ۹۰ + خزانه ۱۰)، retry با idempotency، گیت HITL روی ۶۰٬۰۰۰ Đ، سقف ضرب سالانه،
-  رض حساب منفی، 401/404/422/429 درست؛ ۵۶/۵۶ کل monorepo؛ tsc strict تمیز؛ بوت واقعی سرور curl-تست شد.
+  رض حساب منفی، 401/404/422/429 درست؛ **۸۴/۸۴ کل monorepo** (domain ۴۰ + llm ۱۷ + contracts ۱۱ + server ۱۶)؛
+  tsc strict تمیز؛ بوت واقعی سرور با سه متغیر LLM و کانفیگ ناقص رد شد (curl-تست).
 
 ## فاز ۳ — ربات (`apps/bot`) ⏭ فاز بعدی
 
@@ -53,7 +61,9 @@
 
 ## فاز ۵ — چرخه‌ی AI (`packages/ai-gateway`) ⏳
 
-- AI Gateway چندسرویس‌دهنده: primary → secondary → fallback قطعی (یادگیری از 9router هرمس)
+- لایه‌ی مدل قفل شد (**ADR-006**): فقط API سازگار با OpenAI روی سه متغیر محیطی؛
+  کلاینت آن در `packages/llm` از فاز ۲ آماده و تست‌شده است
+- AI Gateway چندسرویس‌دهنده: primary → secondary → fallback قطعی (چند `LlmConfig` با همان شکل، یادگیری از 9router هرمس)
 - ۶ ایجنت Zenovix + ۱۶ مهارت + ابزارهای fail-closed سبک KIA-OS
 - سنجش مصرف per-user + سقف هزینه + پالایش خروجی
 - **پذیرش**: قطع سرویس‌دهنده‌ی اصلی تست را نمی‌شکند (fallback فعال)؛

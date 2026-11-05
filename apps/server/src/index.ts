@@ -14,7 +14,7 @@ import { toHttpError, ValidationFailure } from './errors.js';
 
 export const OPENAPI_INFO: C.OpenApiInfo = {
   title: 'DropAgentX v3 — Unified Core API',
-  version: '0.2.0',
+  version: '0.3.0',
   description:
     'Admin service API over the pure domain core: integer money, immutable double-entry ledger, escrow state machine, 10-article monetary charter. Errors follow { error: { code, message } } — codes are additive.',
 };
