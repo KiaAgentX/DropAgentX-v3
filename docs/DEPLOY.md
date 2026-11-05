@@ -6,7 +6,7 @@ vars together, or none).
 
 ## 1. Create the project
 
-1. Railway → New Project → Deploy from GitHub repo (`KiaAgentX/v3-core`).
+1. Railway → New Project → Deploy from GitHub repo (`KiaAgentX/DropAgentX-v3`).
 2. Add a **Volume** mounted at `/app/db` (SQLite lives there — daily backups are
    the Railway volume snapshots; export monthly to the release archive too).
 3. Set the variables (`.env.example` is the authoritative list):

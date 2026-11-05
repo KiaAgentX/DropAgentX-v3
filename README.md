@@ -7,7 +7,7 @@
 `front/` → Aurora dashboard · `back/` → server, bot and every domain package
 
 [![Version](https://img.shields.io/badge/version-1.0.0-818CF8?labelColor=0F1B2D)](package.json)
-[![CI](https://github.com/KiaAgentX/DropAgentX/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![CI](https://github.com/KiaAgentX/DropAgentX-v3/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-187%20passing-6EE7B7?labelColor=0F1B2D)](#testing)
 [![TypeScript strict](https://img.shields.io/badge/TypeScript-strict%20%2B%20noUncheckedIndexedAccess-3178C6?labelColor=0F1B2D)](tsconfig.base.json)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-339933?labelColor=0F1B2D&logo=node.js&logoColor=white)](package.json)
@@ -108,7 +108,7 @@ Non-negotiables enforced by tests, not by hope:
 **Prerequisites:** Node ≥ 22, [pnpm 9](https://pnpm.io) (via corepack), optional Docker.
 
 ```bash
-git clone https://github.com/KiaAgentX/DropAgentX.git dropagentx
+git clone https://github.com/KiaAgentX/DropAgentX-v3.git dropagentx-v3
 cd dropagentx
 
 pnpm install            # workspace install (7 packages)
