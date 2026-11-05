@@ -54,8 +54,8 @@ if (process.env.DATABASE_URL === undefined) {
   console.error('No target: pass --target file:./db/v3.db or set DATABASE_URL');
   process.exit(2);
 }
-console.log(`[migrate] legacy = ${legacyPath}`);
-console.log(`[migrate] target = ${process.env.DATABASE_URL}${dryRun ? ' (dry-run)' : ''}`);
+console.log(`[m[migrate] legacy = ${legacyPath}`);
+console.log(`[m[migrate] target = ${process.env.DATABASE_URL}${dryRun ? ' (dry-run)' : ''}`);
 
 // ── legacy reader (raw SQL — the legacy tables are not v3 models) ────────────
 
@@ -122,9 +122,9 @@ async function main(): Promise<void> {
   const sumDin = perCitizen.reduce((a, u) => a + u.din, 0);
   const banned = users.filter((u) => u.is_banned === 1).length;
 
-  console.log(`[migrate] legacy users: ${users.length} (banned ${banned}) · Σ credits ${sumCredits.toFixed(1)} Đ · tx rows ${txCount}`);
-  console.log(`[migrate] per-citizen floor: Σ ${sumDin} Đ across ${perCitizen.filter((u) => u.din > 0).length} holder(s)`);
-  console.log(`[migrate] legacy products: ${products.length}`);
+  console.log(`[m[migrate] legacy users: ${users.length} (banned ${banned}) · Σ credits ${sumCredits.toFixed(1)} Đ · tx rows ${txCount}`);
+  console.log(`[m[migrate] per-citizen floor: Σ ${sumDin} Đ across ${perCitizen.filter((u) => u.din > 0).length} holder(s)`);
+  console.log(`[m[migrate] legacy products: ${products.length}`);
 
   const config = loadConfig();
   const prisma = new PrismaClient();
@@ -133,7 +133,7 @@ async function main(): Promise<void> {
 
   const existing = await prisma.tx.findFirst({ where: { idempotencyKey: GENESIS_KEY } });
   if (existing !== null) {
-    console.log('[migrate] genesis already present — replay-safe exit.');
+    console.log('[m[migrate] genesis already present — replay-safe exit.');
     console.log(await reconcile(store, prisma, products.length));
     await prisma.$disconnect();
     return;
@@ -145,7 +145,7 @@ async function main(): Promise<void> {
     `9×50 purchases without tx rows (−450) + manual owner credit (+387) — genesis audit ۱۴۰۵`;
 
   if (dryRun) {
-    console.log('[migrate] dry-run — no writes. Plan:');
+    console.log('[m[migrate] dry-run — no writes. Plan:');
     console.log(`  accounts: ${users.length} user account(s) + 4 system accounts`);
     console.log(`  genesis tx: mint:genesis −${sumDin} → ${perCitizen.filter((u) => u.din > 0).length} user posting(s)`);
     console.log(`  products: ${products.length} row(s)`);
@@ -217,12 +217,12 @@ async function main(): Promise<void> {
     }
   });
 
-  console.log('[migrate] done.');
+  console.log('[m[migrate] done.');
   console.log(await reconcile(store, prisma, products.length));
   await prisma.$disconnect();
 }
 
 main().catch((err: unknown) => {
-  console.error('[migrate] FAILED:', err instanceof Error ? err.message : err);
+  console.error('[m[migrate] FAILED:', err instanceof Error ? err.message : err);
   process.exit(1);
 });

@@ -26,6 +26,11 @@ vars together, or none).
 
 4. Deploy. Health check: `GET /api/v1/health` → `{"status":"ok", …}`.
 
+> **Fresh-volume note:** on first boot the single-service runs `prisma db push
+> --skip-generate` against the mounted volume (idempotent — creates the schema
+> on an empty volume, syncs additive drift, refuses destructive changes).
+> Launch gate: `bash scripts/prod-smoke.sh` reproduces this boot locally.
+
 ## 2. Migrate the legacy economy (once)
 
 From any machine with the legacy DB (never upload the backup to Railway —

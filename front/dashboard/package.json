@@ -1,6 +1,6 @@
 {
   "name": "@dropagentx/dashboard",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "DropAgentX v3 admin dashboard: Aurora UI, RTL fa/en, typed client over the Phase-2 OpenAPI contracts (ADR-005). Vite SPA \u2014 served as static files by the Fastify server in Phase 6.",
   "private": true,
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@dropagentx/contracts",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "Wire contracts of DropAgentX v3 API: zod schemas + OpenAPI 3.1 generation (ADR-005). Single source of truth for server routes and typed clients.",
   "type": "module",
   "main": "./src/index.ts",

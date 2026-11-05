@@ -1,6 +1,6 @@
 {
   "name": "@dropagentx/bot",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "DropAgentX v3 Telegram bot (Phase 3): grammY glue over a pure orchestrator that talks to the v3 server through the typed contracts client. HITL queue for money actions \u2265 50,000 \u0110. i18n fa/en.",
   "type": "module",
   "main": "./src/index.ts",

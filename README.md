@@ -6,7 +6,7 @@
 
 `front/` → Aurora dashboard · `back/` → server, bot and every domain package
 
-[![Version](https://img.shields.io/badge/version-0.6.0-818CF8?labelColor=0F1B2D)](package.json)
+[![Version](https://img.shields.io/badge/version-1.0.0-818CF8?labelColor=0F1B2D)](package.json)
 [![CI](https://github.com/KiaAgentX/DropAgentX/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-187%20passing-6EE7B7?labelColor=0F1B2D)](#testing)
 [![TypeScript strict](https://img.shields.io/badge/TypeScript-strict%20%2B%20noUncheckedIndexedAccess-3178C6?labelColor=0F1B2D)](tsconfig.base.json)

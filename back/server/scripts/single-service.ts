@@ -10,10 +10,25 @@
  * Run: pnpm -F @dropagentx/server exec tsx scripts/single-service.ts
  */
 
+import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../src/config.js';
 import { buildApp } from '../src/index.js';
 
 const config = loadConfig();
+
+// Launch gate: a fresh Railway volume is an EMPTY SQLite file — ensure the
+// schema exists before the first upsert. `db push` is idempotent: it creates
+// tables on a fresh volume, syncs additive drift, and refuses destructive
+// changes loudly (fail-closed). Only meaningful for file: (SQLite) databases.
+const databaseUrl = process.env.DATABASE_URL;
+if (databaseUrl !== undefined && databaseUrl.startsWith('file:')) {
+  console.log('[single] ensuring database schema (prisma db push)…');
+  execSync('pnpm exec prisma db push --skip-generate', {
+    cwd: fileURLToPath(new URL('..', import.meta.url)),
+    stdio: 'inherit',
+  });
+}
 const built = await buildApp(config);
 
 let stopBot: (() => Promise<void>) | null = null;
