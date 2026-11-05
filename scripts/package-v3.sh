@@ -67,10 +67,20 @@ Aurora dashboard, AI gateway (6 agents / 16 skills), legacy migration + release.
 - Sacred rules: integer D, double-entry closure, escrow state machine,
   HITL >= 50,000 D, Result errors, secrets never in git.
 EOF
+# rebuild from scratch — zip -qr UPDATES an existing archive instead of replacing it
+rm -f "$OUT/$NAME" "$OUT/$NAME.sha256"
 ( cd "$STAGE" && zip -qr "$OUT/$NAME" . )
 sha256sum "$OUT/$NAME" | tee "$OUT/$NAME.sha256"
 
 FILES=$(unzip -l "$OUT/$NAME" | tail -1 | awk '{print $2}')
 echo "── package: $OUT/$NAME (${FILES} files)"
+
+echo "── QC 6: layout purity inside the zip"
+STALE=$(unzip -l "$OUT/$NAME" | grep -cE ' \**(apps|packages)/' || true)
+if [ "$STALE" -gt 0 ]; then echo "FAIL: $STALE stale apps/|packages/ entries in the zip"; exit 1; fi
+if ! unzip -l "$OUT/$NAME" | grep -q ' front/' || ! unzip -l "$OUT/$NAME" | grep -q ' back/'; then
+  echo "FAIL: front/ or back/ missing from the zip"; exit 1
+fi
+echo "   ok (front/ + back/ only, no legacy paths)"
 rm -rf "$STAGE"
 echo "DONE — v3 ${VERSION} packaged."
