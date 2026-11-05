@@ -23,16 +23,21 @@
   تست‌های کلیدی: پایایی در ۳۰۰ عملیات تصادفی seed-دار، replay با idempotency،
   مسیر‌های غیرمجاز اسکرو رد می‌شوند، مالیات دقیقاً ۱۰٪ با floor.
 
-## فاز ۲ — سرور (`apps/server`) ⏳
+## فاز ۲ — سرور (`apps/server`) ✅
 
-- Fastify + Prisma (SQLite، schema قابل‌انتقال به PG)
-- `packages/contracts`: قراردادهای zod → تولید OpenAPI + کلاینت تایپ‌دار
-- لایه‌ی امنیت: احراز Telegram initData + هدر `X-KIA-Key` برای ادمین + rate limit + audit log
-- Outbox pattern برای رویدادهای دامنه (پل بین هسته‌ی خالص و persistence)
-- **پذیرش**: `/api/v1/*` با OpenAPI قابل‌مرور؛ هر endpoint از قرارداد zod ساخته می‌شود؛
-  تست انتگراسیون ledger→escrow→HTTP سبز؛ هیچ secret ای وارد کد نمی‌شود.
+- Fastify v5 + Prisma (SQLite با `schema.prisma` قابل‌انتقال به PG) — `apps/server`
+- `packages/contracts`: قراردادهای zod → تولید OpenAPI 3.1 بومی (بدون پل شخص ثالث، `z.toJSONSchema`)
+- **۱۷ endpoint** از یک رجیستری واحد: قرارداد + امنیت + handler + داکیومنت از یک تعریف (realization واقعی ADR-005)
+- لایه‌ی امنیت: `X-KIA-Key` با مقایسه‌ی زمان-ثابت و fail-closed (بدون کانفیگ → 503 ADMIN_DISABLED)،
+  احراز Telegram initData با HMAC-SHA256 رسمی (آماده‌ی فاز ۳)، rate limit درون-حافظه‌ای، audit log
+- آداپتر persistence: دفتر کامل در هر تراکنش تعاملی load → اجرای دامنه‌ی خالص → persist؛
+  Outbox برای `DomainEvent`ها + ردیف audit؛ idempotency با unique constraint (مسابقه‌ی retry دوبار پول جابه‌جا نمی‌کند)
+- `/api/v1/openapi.json` + صفحه‌ی مرور `/api/v1/docs`
+- **پذیرش (محقق شد)**: ۱۳/۱۳ تست انتگراسیون سبز روی SQLite واقعی — چرخه‌ی کامل escrow از HTTP
+  (۱۰۰ → فروشنده ۹۰ + خزانه ۱۰)، retry با idempotency، گیت HITL روی ۶۰٬۰۰۰ Đ، سقف ضرب سالانه،
+  رض حساب منفی، 401/404/422/429 درست؛ ۵۶/۵۶ کل monorepo؛ tsc strict تمیز؛ بوت واقعی سرور curl-تست شد.
 
-## فاز ۳ — ربات (`apps/bot`) ⏳
+## فاز ۳ — ربات (`apps/bot`) ⏭ فاز بعدی
 
 - grammY (webhook روی Railway، polling در توسعه) + Orchestrator
 - صف HITL با TTL برای عملیات پولی ≥ ۵۰k

@@ -15,8 +15,8 @@ state machine. Everything is fail-closed.
 |---|---|---|
 | ۰ | اسکلت monorepo (pnpm + turbo + TS strict + CI) | ✅ |
 | ۱ | `packages/domain` — Money صحیح، دفتر دوطرفه، اسکرو، منشور پولی — **۴۰ تست سبز** | ✅ |
-| ۲ | `apps/server` — Fastify + Prisma + zod→OpenAPI + خط لوله امنیت | ⏳ |
-| ۳ | `apps/bot` — grammY + Orchestrator + HITL | ⏳ |
+| ۲ | `apps/server` + `packages/contracts` — Fastify v5، ۱۷ endpoint، OpenAPI 3.1، امنیت fail-closed — **۱۳ تست انتگراسیون** | ✅ |
+| ۳ | `apps/bot` — grammY + Orchestrator + HITL | ⏭ بعدی |
 | ۴ | `apps/dashboard` — Aurora UI + RTL + fa/en | ⏳ |
 | ۵ | `packages/ai-gateway` — multi-provider + ۶ ایجنت + ۱۶ مهارت | ⏳ |
 | ۶ | مهاجرت لجسی (۴۶۶ کاربر / ۱٬۵۵۴ تراکنش / عرضه ۱۸۷٬۶۷۲ Đ) + انتشار روی Railway | ⏳ |
@@ -49,12 +49,12 @@ pnpm typecheck                     # strict, بدون خطا
 ```
 v3-core/
 ├── apps/
-│   ├── server/        ← فاز ۲: Fastify + Prisma + OpenAPI + امنیت
+│   ├── server/        ← ✅ فاز ۲: Fastify v5 + Prisma + ۱۷ endpoint + OpenAPI + امنیت
 │   ├── bot/           ← فاز ۳: grammY + Orchestrator + HITL
 │   └── dashboard/     ← فاز ۴: Aurora UI (fa/en, RTL)
 ├── packages/
 │   ├── domain/        ← ✅ فاز ۱: هسته‌ی خالص (صفر وابستگی runtime)
-│   └── contracts/     ← فاز ۲: قراردادهای zod + تولید OpenAPI
+│   └── contracts/     ← ✅ فاز ۲: قراردادهای zod + تولید OpenAPI 3.1
 └── docs/
     ├── ROADMAP.md
     ├── ARCHITECTURE.md

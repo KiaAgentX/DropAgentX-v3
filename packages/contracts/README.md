@@ -1,10 +1,9 @@
-# packages/contracts — فاز ۲
+# @dropagentx/contracts — فاز ۲ ✅
 
-قراردادهای zod → OpenAPI. این فایل placeholder است — در فاز ۲ پر می‌شود.
+تک‌منبع حقیقتِ قراردادهای سیم (ADR-005): اسکیماهای zod + سازنده‌ی OpenAPI 3.1.
 
-**خواهد داشت**:
-- اسکیمای zod برای هر endpoint و پاسخ
-- تولید OpenAPI 3.1 + کلاینت تایپ‌دار
-- مصرف مشترک در `apps/server` و `apps/dashboard`
+- `common.ts` — پول صحیح روی سیم (`DNX`)، id، idempotencyKey، خطای استاندارد، وضعیت‌های اسکرو
+- `accounts.ts` / `wallet.ts` / `escrows.ts` / `economy.ts` / `system.ts` — قرارداد هر endpoint
+- `openapi.ts` — `buildOpenApiDoc(routes)` با `z.toJSONSchema` بومی zod v4 (بدون پل شخص ثالث)
 
-معیار پذیرش: `docs/ROADMAP.md` → فاز ۲ (ADR-005).
+قانون: سرور با همین اسکیماها validate می‌کند، داشبورد با همین‌ها type می‌گیرد، داکیومنت از همین‌ها تولید می‌شود — امکان drift صفر.

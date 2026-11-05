@@ -1,0 +1,73 @@
+// DropAgentX v3 — server data model (ADR-003: balances are DERIVED from postings;
+// the postings table is the single source of truth).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id        String    @id
+  kind      String // user | escrow | treasury | mint | burn
+  label     String?
+  createdAt DateTime  @default(now())
+  postings  Posting[]
+}
+
+model Tx {
+  id             String    @id
+  idempotencyKey String?   @unique
+  memo           String?
+  at             DateTime
+  postings       Posting[]
+}
+
+model Posting {
+  id        Int     @id @default(autoincrement())
+  txId      String
+  tx        Tx      @relation(fields: [txId], references: [id])
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+  amount    Int
+
+  @@index([accountId])
+  @@index([txId])
+}
+
+model Escrow {
+  id            String    @id
+  buyerId       String
+  sellerId      String
+  amount        Int
+  productRef    String?
+  status        String
+  createdAt     DateTime
+  fundedTxId    String?
+  settleTxId    String?
+  disputeReason String?
+  deliveryRef   String?
+  expiresAt     DateTime?
+
+  @@index([status])
+}
+
+model OutboxEvent {
+  id        String   @id @default(cuid())
+  kind      String
+  payload   String // JSON-encoded DomainEvent
+  createdAt DateTime @default(now())
+  published Boolean  @default(false)
+}
+
+model AuditLog {
+  id     String   @id @default(cuid())
+  actor  String
+  action String
+  target String?
+  meta   String?
+  at     DateTime @default(now())
+}
