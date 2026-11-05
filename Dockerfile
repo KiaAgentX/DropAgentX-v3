@@ -3,8 +3,7 @@
 # cached; tsx runs TS directly — no build step to drift (packages are
 # source-linked).
 #
-# Two cold-build facts this file encodes (learned the hard way — a Railway
-# deploy fails at `pnpm install` without them):
+# Three cold-deploy facts this file encodes (learned the hard way on Railway):
 # 1. `prisma generate` runs as a workspace postinstall during `pnpm install`,
 #    so the schema must exist in the install stage. Manifests alone are not
 #    enough — the postinstall fails with "Could not find Prisma Schema" and
@@ -13,6 +12,13 @@
 #    which needs python3/make/g++. node:24-slim carries none of them, so the
 #    tools are installed in the install stage ONLY; the runtime stage stays a
 #    clean slim image.
+# 3. BOTH stages need system OpenSSL: Prisma's engines (query + schema) link
+#    against it, while node:24-slim ships none (Node's own OpenSSL is static).
+#    Without it the boot gate crash-loops: variant detection falls back to
+#    openssl-1.1.x, no 3.0.x engine is found, Prisma tries to download one
+#    into root-owned node_modules as the `node` user → "Can't write to …".
+#    With openssl-3.0.x present in BOTH stages, the engines fetched at build
+#    time are reused read-only at runtime — no writes, no downloads.
 # NOTE: no --mount=type=cache here. Railway rejects cache-mount ids without a
 # service-scoped prefix (id=s/<service-id>-…), and hard-coding a service id in
 # a public Dockerfile kills portability. Plain layer caching does the same job
@@ -22,10 +28,12 @@ FROM node:24-slim AS deps
 ENV PNPM_HOME=/pnpm-store \
     COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     COREPACK_HOME=/usr/local/share/corepack
-# Native-module toolchain (better-sqlite3 has no prebuilds) — install stage
-# only; kept out of the runtime image below.
+# Native-module toolchain (better-sqlite3 has no prebuilds) + openssl so the
+# Prisma engines postinstall detects and fetches the debian-openssl-3.0.x
+# variant deterministically (it used to arrive only as a transitive dep of
+# python3 — explicit beats implicit).
 RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 make g++ \
+ && apt-get install -y --no-install-recommends python3 make g++ openssl \
  && rm -rf /var/lib/apt/lists/*
 # Pin the exact pnpm from root package.json `packageManager` — no per-run
 # registry drift, and the runtime stage has no package.json yet when it needs
@@ -54,6 +62,12 @@ ENV NODE_ENV=production \
 # pnpm is prepared INTO the image (world-readable corepack cache) so the boot
 # gate (`prisma db push` on a fresh volume) never waits on a runtime download.
 RUN corepack enable pnpm && corepack prepare pnpm@9.15.9 --activate
+# OpenSSL 3 for the Prisma engines — see fact 3 at the top. The engine binaries
+# shipped in node_modules were fetched against 3.0.x at build time and are
+# reused read-only here; nothing ever writes into node_modules at runtime.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=deps /app /app
 # Source ships whole (TS-first deploy); .dockerignore keeps host state and
