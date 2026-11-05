@@ -6,7 +6,7 @@
 
 import { z } from 'zod';
 import type { LlmConfig } from '@dropagentx/llm';
-import { loadGatewayConfigs, loadGatewayOptions } from '@dropagentx/ai-gateway';
+import { loadGatewayConfigsSafe, loadGatewayOptions } from '@dropagentx/ai-gateway';
 
 /** dotenv-style files leave empties behind — an empty string means "unset". */
 const emptyAsUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
@@ -43,9 +43,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   const { KIA_ADMIN_KEY, TELEGRAM_BOT_TOKEN, V3_DEV_AUTH, PORT, RATE_LIMIT_PER_MIN } = parsed.data;
   const devAuth = V3_DEV_AUTH === '1' && !TELEGRAM_BOT_TOKEN;
-  // Fail-closed (ADR-006): a PARTIAL LLM configuration refuses to boot —
-  // an all-or-nothing rule enforced at the process boundary, per provider.
-  const gateway = loadGatewayConfigs(env);
+  // Fail-closed (ADR-006 + ADR-008): an EMPTY LLM env means AI disabled
+  // (legitimate deployment — /ai/* answers 503); a PARTIAL configuration
+  // refuses to boot, all-or-nothing, per provider.
+  const gateway = loadGatewayConfigsSafe(env);
   if (!gateway.ok) {
     throw new Error(`Invalid environment — ${gateway.message}`);
   }

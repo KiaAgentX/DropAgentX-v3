@@ -5,6 +5,7 @@
  */
 
 import { createV3Client } from '@dropagentx/contracts';
+import { webhookCallback } from 'grammy';
 import { loadBotConfig, type BotConfig } from './config.js';
 import { Orchestrator } from './core/orchestrator.js';
 import { createTelegramBot } from './telegram/bot.js';
@@ -13,6 +14,12 @@ export interface RunningBot {
   readonly orchestrator: Orchestrator;
   readonly client: ReturnType<typeof createV3Client>;
   sweepTimer: ReturnType<typeof setInterval> | null;
+  /**
+   * Standard-Web fetch handler for the webhook mode (grammY 'std/http') —
+   * the single-service entry mounts it on its own HTTP framework.
+   */
+  readonly handleWebhook?: (request: Request) => Promise<Response>;
+  readonly webhookSecret?: string;
   stop(): Promise<void>;
 }
 
@@ -36,10 +43,19 @@ export function buildBot(config: BotConfig): RunningBot {
     orchestrator,
   );
 
+  // Webhook mode: expose a transport-agnostic handler so the single-service
+  // entry (Railway) can mount it on Fastify without a second port.
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const handleWebhook =
+    config.mode === 'webhook'
+      ? webhookCallback(bot, 'std/http', 'throw', undefined, webhookSecret)
+      : undefined;
+
   const state: RunningBot = {
     orchestrator,
     client,
     sweepTimer: null,
+    ...(handleWebhook !== undefined ? { handleWebhook, ...(webhookSecret !== undefined ? { webhookSecret } : {}) } : {}),
     async stop(): Promise<void> {
       if (state.sweepTimer !== null) clearInterval(state.sweepTimer);
       state.sweepTimer = null;

@@ -1,7 +1,7 @@
 {
   "name": "@dropagentx/bot",
-  "version": "0.3.0",
-  "description": "DropAgentX v3 Telegram bot (Phase 3): grammY glue over a pure orchestrator that talks to the v3 server through the typed contracts client. HITL queue for money actions ≥ 50,000 Đ. i18n fa/en.",
+  "version": "0.6.0",
+  "description": "DropAgentX v3 Telegram bot (Phase 3): grammY glue over a pure orchestrator that talks to the v3 server through the typed contracts client. HITL queue for money actions \u2265 50,000 \u0110. i18n fa/en.",
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
@@ -21,5 +21,15 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./main": {
+      "types": "./src/main.ts",
+      "default": "./src/main.ts"
+    }
   }
 }

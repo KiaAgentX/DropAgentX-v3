@@ -93,6 +93,21 @@ export function loadGatewayConfigs(env: NodeJS.ProcessEnv = process.env): Gatewa
   return { ok: true, providers };
 }
 
+/**
+ * Safe variant for services where the AI cycle is OPTIONAL: an empty
+ * environment means "AI disabled" (ok with an empty provider list); a PARTIAL
+ * configuration is still a hard error — never a silent fallback.
+ */
+export function loadGatewayConfigsSafe(env: NodeJS.ProcessEnv = process.env): GatewayConfigResult {
+  const anyVar = SLOTS.some((slot) =>
+    slot.suffix === '' ? PROVIDER_VARS.some((v) => env[v] !== undefined && env[v] !== '') : anySuffixedVar(env, slot.suffix),
+  );
+  if (!anyVar) {
+    return { ok: true, providers: [] };
+  }
+  return loadGatewayConfigs(env);
+}
+
 export interface GatewayEnvOptions {
   /** Per-user daily token cap (default 120,000). */
   readonly dailyTokenCap?: number;

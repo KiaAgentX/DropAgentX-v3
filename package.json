@@ -1,8 +1,8 @@
 {
   "name": "dropagentx-v3-core",
-  "description": "DropAgentX v3 — Unified Core. Domain-first monorepo: wallet ledger, escrow marketplace, AI cycle, parliament.",
+  "description": "DropAgentX v3 \u2014 Unified Core. Domain-first monorepo: wallet ledger, escrow marketplace, AI cycle, parliament.",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.6.0",
   "packageManager": "pnpm@9.15.9",
   "workspaces": [
     "packages/*",

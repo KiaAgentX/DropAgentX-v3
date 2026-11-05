@@ -1,7 +1,7 @@
 {
   "name": "@dropagentx/ai-gateway",
-  "version": "0.1.0",
-  "description": "Phase 5 AI gateway — 6 Zenovix agents + 16 KIA-OS skills over the ADR-006 OpenAI-compatible layer. Deterministic provider fallback, per-user metering with daily caps, output redaction, fail-closed everywhere.",
+  "version": "0.6.0",
+  "description": "Phase 5 AI gateway \u2014 6 Zenovix agents + 16 KIA-OS skills over the ADR-006 OpenAI-compatible layer. Deterministic provider fallback, per-user metering with daily caps, output redaction, fail-closed everywhere.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

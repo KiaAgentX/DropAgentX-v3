@@ -1,6 +1,6 @@
 {
   "name": "@dropagentx/domain",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "description": "Pure domain core of DropAgentX v3: integer money, double-entry ledger, escrow state machine, monetary charter. Zero runtime dependencies.",
   "type": "module",
   "main": "./src/index.ts",
