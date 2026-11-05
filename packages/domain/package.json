@@ -1,0 +1,23 @@
+{
+  "name": "@dropagentx/domain",
+  "version": "0.1.0",
+  "description": "Pure domain core of DropAgentX v3: integer money, double-entry ledger, escrow state machine, monetary charter. Zero runtime dependencies.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
