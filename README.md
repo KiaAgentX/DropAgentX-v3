@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src=".github/assets/logo.png" alt="DropAgentX v3" width="140" />
+
 <img src=".github/assets/hero.svg" alt="DropAgentX v3 — Unified Core" width="100%" />
 
 **One engine for the whole empire — wallet ledger, escrow marketplace, AI cycle and parliament, rebuilt domain-first from day zero.**
@@ -67,6 +69,22 @@ flowchart LR
 - **The domain has zero runtime dependencies.** Money, ledger, escrow and charter are
   pure functions — the HTTP layer is a thin adapter around them.
 
+## Screenshots
+
+Real UI, real data — the stack booted with a seeded demo database (all 8 escrow states, a live HITL queue, balanced ledger Σ = 0). The full set lives in [docs/screenshots/](docs/screenshots/).
+
+| **Overview — national economy** | **Escrows — 8-state machine** |
+|---|---|
+| ![Overview](docs/screenshots/01-overview-fa.png) | ![Escrows](docs/screenshots/03-escrows-fa.png) |
+| **Accounts — double-entry ledger** | **HITL queue — Article 7, ≥ 50,000 Đ** |
+| ![Accounts](docs/screenshots/02-accounts-fa.png) | ![HITL](docs/screenshots/04-hitl-fa.png) |
+| **Admin gate — fail-closed key entry** | **API docs — OpenAPI 3.1** |
+| ![Gate](docs/screenshots/11-gate-fa.png) | ![Docs](docs/screenshots/12-api-docs.png) |
+| **Bot — escrowed purchase → human approval** | **Bot — commands & national economy** |
+| ![Bot flow](docs/screenshots/14-bot-buy-hitl-fa.png) | ![Bot help](docs/screenshots/13-bot-help-fa.png) |
+
+*The dashboard is bilingual (EN shots 06–10 in the folder). The bot previews are rendered from the bot's real i18n strings and live server data.*
+
 ## Project layout
 
 ```
@@ -120,6 +138,10 @@ pnpm typecheck          # strict, zero errors
 pnpm -F @dropagentx/server dev        # API on :8787 — docs at /api/v1/docs
 pnpm -F @dropagentx/dashboard dev     # dashboard on :5173
 pnpm -F @dropagentx/bot dev           # Telegram bot in polling mode
+
+# optional: seed a rich demo dataset (replay-safe, balanced ledger) then re-open the dashboard
+BASE_URL=http://127.0.0.1:8787/api/v1 KIA_ADMIN_KEY=<your-key> \
+  pnpm -F @dropagentx/server exec tsx scripts/seed-demo.ts
 ```
 
 Minimum viable `.env`:

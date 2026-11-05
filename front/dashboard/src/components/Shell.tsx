@@ -56,7 +56,11 @@ export function Shell({ children }: { children: ReactNode }): React.JSX.Element 
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-10 sm:px-6">
       <header className="flex flex-wrap items-center justify-between gap-3 py-5">
         <div className="flex items-center gap-3">
-          <div className="glass flex size-10 items-center justify-center text-lg font-bold text-emerald-300">Đ</div>
+          <img
+            src="/logo.png"
+            alt="DropAgentX v3 logo"
+            className="size-10 rounded-xl object-cover ring-1 ring-white/10"
+          />
           <div>
             <h1 className="text-lg font-bold leading-tight">
               <span className="brand-gradient">{t('app.brand')}</span>

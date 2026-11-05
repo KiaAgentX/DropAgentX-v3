@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src=".github/assets/logo.png" alt="DropAgentX v3" width="140" />
+
 <img src=".github/assets/hero.svg" alt="DropAgentX v3 — هسته‌ی یکپارچه" width="100%" />
 
 **یک موتور برای کل امپراتوری — دفتر کیف پول، مارکت‌پلیس اسکرو، چرخه‌ی AI و پارلمان؛
@@ -68,6 +70,22 @@ flowchart LR
 - **دامنه صفر وابستگی runtime دارد.** پول، دفتر، اسکرو و منشور توابع خالص‌اند —
   لایه‌ی HTTP فقط یک آداپتور نازک روی آن‌هاست.
 
+## تصاویر محصول
+
+UI واقعی با دیتای واقعی — کل استک با دیتابیس دموی seed شده بالا آمده (هر ۸ وضعیت اسکرو، صف HITL زنده، دفتر متوازن با Σ = ۰). ست کامل در [docs/screenshots/](docs/screenshots/).
+
+| **نمای کلی — اقتصاد ملی** | **اسکروها — ماشین ۸-وضعیتی** |
+|---|---|
+| ![نمای کلی](docs/screenshots/01-overview-fa.png) | ![اسکروها](docs/screenshots/03-escrows-fa.png) |
+| **حساب‌ها — دفتر دوطرفه** | **صف HITL — ماده ۷، ≥ ۵۰٬۰۰۰ Đ** |
+| ![حساب‌ها](docs/screenshots/02-accounts-fa.png) | ![HITL](docs/screenshots/04-hitl-fa.png) |
+| **دروازه ادمین — ورود کلید fail-closed** | **مستندات API — OpenAPI 3.1** |
+| ![دروازه](docs/screenshots/11-gate-fa.png) | ![مستندات](docs/screenshots/12-api-docs.png) |
+| **بات — خرید اسکرویی → تایید انسانی** | **بات — دستورها و اقتصاد ملی** |
+| ![بات خرید](docs/screenshots/14-bot-buy-hitl-fa.png) | ![بات راهنما](docs/screenshots/13-bot-help-fa.png) |
+
+*داشبورد دوزبانه است (نماهای EN با شماره‌های ۰۶ تا ۱۰ در پوشه). پیش‌نمایش‌های بات از رشته‌های واقعی i18n خود بات و دیتای زنده سرور رندر شده‌اند.*
+
 ## ساختار پروژه
 
 ```
@@ -120,6 +138,10 @@ pnpm typecheck          # strict، صفر خطا
 pnpm -F @dropagentx/server dev        # API روی :8787 — مستندات در /api/v1/docs
 pnpm -F @dropagentx/dashboard dev     # داشبورد روی :5173
 pnpm -F @dropagentx/bot dev           # ربات تلگرام در حالت polling
+
+# اختیاری: دیتای دموی کامل (replay-safe با دفتر متوازن) را بریزید و دوباره داشبورد را باز کنید
+BASE_URL=http://127.0.0.1:8787/api/v1 KIA_ADMIN_KEY=<کلید شما> \
+  pnpm -F @dropagentx/server exec tsx scripts/seed-demo.ts
 ```
 
 حداقلی‌ترین `.env`:
