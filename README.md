@@ -19,7 +19,7 @@ state machine. Everything is fail-closed.
 | ۳ | `apps/bot` — grammY + Orchestrator + HITL — **۲۰ تست سبز** | ✅ |
 | ۴ | `apps/dashboard` — Aurora UI + RTL + fa/en — **۳۵ تست سبز** | ✅ |
 | ۵ | `packages/ai-gateway` — fallback قطعی + ۶ ایجنت Zenovix + ۱۶ مهارت KIA-OS + سقف مصرف + پالایش — **۲۹+۹ تست سبز** | ✅ |
-| ۶ | مهاجرت لجسی (۴۶۶ کاربر / ۱٬۵۵۴ تراکنش / عرضه ۱۸۷٬۶۷۲ Đ) + انتشار روی Railway | ⏳ |
+| ۶ | مهاجرت لجسی + انتشار Railway — Σ کیف‌ها **۱۸۷٬۶۷۲ Đ** اثبات‌شده + ZIP ۰.۶.۰ با QC | ✅ |
 
 جزئیات پذیرش هر فاز: [`docs/ROADMAP.md`](docs/ROADMAP.md)
 

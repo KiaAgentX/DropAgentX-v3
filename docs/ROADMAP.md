@@ -91,11 +91,18 @@
   escrow_refund ۶۰٬۰۰۰ Đ → ردیف HITL با اسکرو هنوز FUNDED؛ سقف تمام → 429 قبل از provider؛
   redaction روی سیم با شمارش در audit؛ **۱۸۷/۱۸۷ کل monorepo** — tsc strict تمیز روی ۷ پروژه
 
-## فاز ۶ — مهاجرت و انتشار ⏳
+## فاز ۶ — مهاجرت و انتشار ✅
 
-- اسکریپت مهاجرت: ۴۶۶ کاربر، ۱٬۵۵۴ تراکنش، ۳۰ محصول، عرضه genesis ۱۸۷٬۶۷۲ Đ
-- گپ تاریخی −۶۳ Đ → ردیف تعدیل صریح `adjustment:legacy-gap`
-- changesets + نسخه‌گذاری + ZIP با SHA256 (آیین QC بسته‌ی v1.5.0)
-- Railway: سرویس واحد server+bot، بکاپ روزانه db
-- **پذیرش**: بعد از مهاجرت، Σ کیف‌های کاربران = ۱۸۷٬۶۷۲ Đ و `trialBalance.balanced === true`؛
-  `nation-genesis-proof` روی دیتابیس جدید هم همان عدد را می‌دهد.
+- `apps/server/scripts/migrate-legacy.ts`: ۴۶۶ کاربر → حساب‌های `user:tg:<id>`،
+  **یک تراکنش genesis** با idempotency قطعی (`legacy:genesis:v1`) به Σ floor(اعتبارات) هر شهروند؛
+  memo همان تراکنش = ردیف تعدیل شفاف گپ −۶۳ Đ (۹×۵۰ خرید بدون ردیف tx = −۴۵۰ + اعتبار دستی مالک +۳۸۷)؛
+  ۳۰ محصول → مدل Product؛ اجرای دوباره هرگز دو برابر ضرب نمی‌کند (بازپخش امن)
+- `apps/server/scripts/genesis-proof.ts`: ممیزی خارجی با SQL خام (بدون Prisma/دامنه) —
+  `PROOF OK: Σ کیف‌ها ۱۸۷٬۶۷۲ Đ · Σ پستینگ‌ها 0 · mint منفی/burn مثبت`
+- سرویس واحد Railway: `scripts/single-service.ts` — یک پروسه = Fastify + grammY + sweep؛
+  webhook روی `/api/v1/bot/webhook` (آداپتور std/http گرام‌وای)؛ Dockerfile چندمرحله‌ای +
+  `railway.json` با healthcheck + `.env.example` خالی + `docs/DEPLOY.md`
+- `scripts/package-v3.sh` — همان آیین QC بسته‌ی v1.5.0: درخت تمیز، git fsck، ۱۸۷ تست سبز،
+  هم‌نسخه‌ی بودن ۸ پکیج، گارد اسرار → `DropAgentX-v3-0.6.0.zip` + SHA256 + HANDOFF
+- **پذیرش (محقق شد)**: بعد از مهاجرت Σ کیف‌های کاربران = **۱۸۷٬۶۷۲ Đ** و `trialBalance.balanced === true`؛
+  ممیزی خارجی روی دیتابیس جدید همان عدد را می‌دهد؛ خروجی ۰.۶.۰ بسته‌بندی و QC شد.
