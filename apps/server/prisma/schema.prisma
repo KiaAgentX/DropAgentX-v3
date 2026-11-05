@@ -71,3 +71,21 @@ model AuditLog {
   meta   String?
   at     DateTime @default(now())
 }
+
+model HitlRequest {
+  id           String    @id
+  kind         String // ESCROW_RELEASE (additive enum on the wire)
+  escrowId     String
+  amount       Int
+  requesterId  String
+  note         String?
+  status       String // PENDING | APPROVED | REJECTED | EXPIRED
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+  decidedBy    String?
+  decidedAt    DateTime?
+  decisionNote String?
+
+  @@index([status])
+  @@index([escrowId])
+}

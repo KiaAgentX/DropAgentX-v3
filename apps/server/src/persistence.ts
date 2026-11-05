@@ -45,6 +45,48 @@ export interface ApplyResult {
   readonly ledger: D.LedgerState;
 }
 
+/** Persist options is the structurally-shared slice of ApplyOptions. */
+export interface PersistOptions {
+  readonly actor: string;
+  readonly action: string;
+  readonly target?: string;
+  readonly idempotencyKey?: string;
+}
+
+export interface HitlRow {
+  readonly id: string;
+  readonly kind: string;
+  readonly escrowId: string;
+  readonly amount: number;
+  readonly requesterId: string;
+  readonly note: string | null;
+  readonly status: string;
+  readonly createdAt: Date;
+  readonly expiresAt: Date;
+  readonly decidedBy: string | null;
+  readonly decidedAt: Date | null;
+  readonly decisionNote: string | null;
+}
+
+export interface HitlDecisionOptions {
+  readonly requestId: string;
+  readonly decision: 'APPROVED' | 'REJECTED';
+  readonly decidedBy: string;
+  readonly decisionNote?: string;
+  /**
+   * The money move for APPROVED — runs in the SAME transaction as the decision
+   * so "approved but nothing moved" can never happen (fail-closed).
+   */
+  readonly execute: (ledger: D.LedgerState, registry: D.EscrowRegistry) => D.Result<CommandOutcome>;
+}
+
+export interface HitlDecisionResult {
+  readonly request: HitlRow;
+  readonly replayed: boolean;
+  readonly tx?: D.PostedTransaction;
+  readonly escrow?: D.Escrow;
+}
+
 type TxClient = Prisma.TransactionClient;
 
 function rowToEscrow(row: {
@@ -125,6 +167,52 @@ export class V3Store {
     }
   }
 
+  /** One place for the write-back of a domain outcome — shared by apply() and decideHitl(). */
+  private async persistOutcome(tx: TxClient, options: PersistOptions, outcome: CommandOutcome): Promise<void> {
+    if (outcome.escrow !== undefined) {
+      const escrowAccountId = D.escrowAccountId(outcome.escrow.id);
+      await tx.account.upsert({
+        where: { id: escrowAccountId },
+        create: { id: escrowAccountId, kind: 'escrow', label: `escrow ${outcome.escrow.id}` },
+        update: {},
+      });
+      await tx.escrow.upsert({
+        where: { id: outcome.escrow.id },
+        create: escrowToRows(outcome.escrow),
+        update: escrowToRows(outcome.escrow),
+      });
+    }
+
+    if (outcome.tx !== undefined) {
+      await tx.tx.create({
+        data: {
+          id: outcome.tx.id,
+          idempotencyKey: options.idempotencyKey ?? outcome.tx.idempotencyKey ?? null,
+          memo: outcome.tx.memo ?? null,
+          at: new Date(outcome.tx.at),
+          postings: {
+            create: outcome.tx.postings.map((p) => ({ accountId: p.accountId, amount: p.amount })),
+          },
+        },
+      });
+    }
+
+    if (outcome.events.length > 0) {
+      await tx.outboxEvent.createMany({
+        data: outcome.events.map((e) => ({ kind: e.kind, payload: JSON.stringify(e) })),
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        actor: options.actor,
+        action: options.action,
+        target: options.target ?? null,
+        meta: outcome.tx !== undefined ? JSON.stringify({ txId: outcome.tx.id }) : null,
+      },
+    });
+  }
+
   private async loadLedgerState(tx: TxClient): Promise<D.LedgerState> {
     const accounts = await tx.account.findMany();
     const sums = await tx.posting.groupBy({ by: ['accountId'], _sum: { amount: true } });
@@ -189,48 +277,7 @@ export class V3Store {
         if (!result.ok) throw new DomainFailure(result.error);
         const outcome = result.value;
 
-        if (outcome.escrow !== undefined) {
-          const escrowAccountId = D.escrowAccountId(outcome.escrow.id);
-          await tx.account.upsert({
-            where: { id: escrowAccountId },
-            create: { id: escrowAccountId, kind: 'escrow', label: `escrow ${outcome.escrow.id}` },
-            update: {},
-          });
-          await tx.escrow.upsert({
-            where: { id: outcome.escrow.id },
-            create: escrowToRows(outcome.escrow),
-            update: escrowToRows(outcome.escrow),
-          });
-        }
-
-        if (outcome.tx !== undefined) {
-          await tx.tx.create({
-            data: {
-              id: outcome.tx.id,
-              idempotencyKey: options.idempotencyKey ?? outcome.tx.idempotencyKey ?? null,
-              memo: outcome.tx.memo ?? null,
-              at: new Date(outcome.tx.at),
-              postings: {
-                create: outcome.tx.postings.map((p) => ({ accountId: p.accountId, amount: p.amount })),
-              },
-            },
-          });
-        }
-
-        if (outcome.events.length > 0) {
-          await tx.outboxEvent.createMany({
-            data: outcome.events.map((e) => ({ kind: e.kind, payload: JSON.stringify(e) })),
-          });
-        }
-
-        await tx.auditLog.create({
-          data: {
-            actor: options.actor,
-            action: options.action,
-            target: options.target ?? null,
-            meta: outcome.tx !== undefined ? JSON.stringify({ txId: outcome.tx.id }) : null,
-          },
-        });
+        await this.persistOutcome(tx, options, outcome);
 
         return { replayed: false, tx: outcome.tx, escrow: outcome.escrow, ledger: outcome.ledger };
       });
@@ -381,5 +428,166 @@ export class V3Store {
       accountCount: accounts.length,
       openEscrows: escrowOpen,
     };
+  }
+
+  // ── HITL queue (charter Article 7) ──
+
+  async insertHitl(row: {
+    id: string;
+    kind: string;
+    escrowId: string;
+    amount: number;
+    requesterId: string;
+    note?: string;
+    expiresAt: Date;
+  }): Promise<HitlRow> {
+    return this.prisma.hitlRequest.create({
+      data: {
+        id: row.id,
+        kind: row.kind,
+        escrowId: row.escrowId,
+        amount: row.amount,
+        requesterId: row.requesterId,
+        ...(row.note !== undefined ? { note: row.note } : {}),
+        status: 'PENDING',
+        expiresAt: row.expiresAt,
+      },
+    });
+  }
+
+  async getHitl(id: string): Promise<HitlRow | null> {
+    return this.prisma.hitlRequest.findUnique({ where: { id } });
+  }
+
+  async listHitl(status?: string): Promise<HitlRow[]> {
+    return this.prisma.hitlRequest.findMany({
+      ...(status !== undefined ? { where: { status } } : {}),
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+  }
+
+  /** TTL sweep — overdue PENDING requests expire (no money is ever held here). */
+  async expireOverdueHitl(now: Date): Promise<number> {
+    const res = await this.prisma.hitlRequest.updateMany({
+      where: { status: 'PENDING', expiresAt: { lte: now } },
+      data: { status: 'EXPIRED' },
+    });
+    return res.count;
+  }
+
+  /**
+   * Decide a HITL request. APPROVED runs the money closure inside the SAME
+   * transaction — decision + settlement are atomic, and the deterministic
+   * release idempotency key (`hitl:<id>:approve`) makes replays honest no-ops.
+   */
+  async decideHitl(options: HitlDecisionOptions): Promise<HitlDecisionResult> {
+    const releaseKey = `hitl:${options.requestId}:approve`;
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const row = await tx.hitlRequest.findUnique({ where: { id: options.requestId } });
+        if (row === null) {
+          throw new DomainFailure({ code: 'HITL_NOT_FOUND', message: `HITL request ${options.requestId} does not exist` });
+        }
+        const now = new Date();
+
+        // Same decision replay — return the original outcome, change nothing.
+        if (row.status === options.decision) {
+          if (options.decision === 'APPROVED') {
+            const existing = await tx.tx.findUnique({
+              where: { idempotencyKey: releaseKey },
+              include: { postings: { orderBy: { id: 'asc' } } },
+            });
+            if (existing !== null) {
+              const escrowRow = await tx.escrow.findUnique({ where: { id: row.escrowId } });
+              return {
+                request: row,
+                replayed: true,
+                tx: rowToTx(existing),
+                ...(escrowRow !== null ? { escrow: rowToEscrow(escrowRow) } : {}),
+              };
+            }
+          }
+          return { request: row, replayed: true };
+        }
+
+        if (row.status === 'APPROVED' || row.status === 'REJECTED') {
+          throw new DomainFailure({
+            code: 'HITL_ALREADY_DECIDED',
+            message: `HITL request ${row.id} was already decided (${row.status})`,
+          });
+        }
+        if (row.status === 'EXPIRED' || row.expiresAt <= now) {
+          if (row.status === 'PENDING') {
+            await tx.hitlRequest.update({ where: { id: row.id }, data: { status: 'EXPIRED' } });
+          }
+          throw new DomainFailure({
+            code: 'HITL_EXPIRED',
+            message: `HITL request ${row.id} expired at ${row.expiresAt.toISOString()}`,
+          });
+        }
+
+        const decidedAt = now;
+        const decisionData = {
+          decidedBy: options.decidedBy,
+          decidedAt,
+          ...(options.decisionNote !== undefined ? { decisionNote: options.decisionNote } : {}),
+        };
+
+        if (options.decision === 'REJECTED') {
+          const updated = await tx.hitlRequest.update({
+            where: { id: row.id },
+            data: { status: 'REJECTED', ...decisionData },
+          });
+          await tx.auditLog.create({
+            data: { actor: options.decidedBy, action: 'hitl.reject', target: row.escrowId, meta: JSON.stringify({ hitlId: row.id, amount: row.amount }) },
+          });
+          return { request: updated, replayed: false };
+        }
+
+        // APPROVED — the settlement runs here; any domain refusal rolls the decision back.
+        const ledger = await this.loadLedgerState(tx);
+        const registry = await this.loadEscrowRegistry(tx, row.escrowId);
+        const result = await options.execute(ledger, registry);
+        if (!result.ok) throw new DomainFailure(result.error);
+        await this.persistOutcome(
+          tx,
+          { actor: options.decidedBy, action: 'hitl.approve-release', target: row.escrowId, idempotencyKey: releaseKey },
+          result.value,
+        );
+        const updated = await tx.hitlRequest.update({
+          where: { id: row.id },
+          data: { status: 'APPROVED', ...decisionData },
+        });
+        return {
+          request: updated,
+          replayed: false,
+          ...(result.value.tx !== undefined ? { tx: result.value.tx } : {}),
+          ...(result.value.escrow !== undefined ? { escrow: result.value.escrow } : {}),
+        };
+      });
+    } catch (err) {
+      // Concurrent duplicate approve: Tx.idempotencyKey UNIQUE saved us —
+      // turn the conflict into an honest replay read (mirrors apply()).
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const row = await this.prisma.hitlRequest.findUnique({ where: { id: options.requestId } });
+        if (row !== null && row.status === 'APPROVED') {
+          const existing = await this.prisma.tx.findUnique({
+            where: { idempotencyKey: releaseKey },
+            include: { postings: { orderBy: { id: 'asc' } } },
+          });
+          if (existing !== null) {
+            const escrowRow = await this.prisma.escrow.findUnique({ where: { id: row.escrowId } });
+            return {
+              request: row,
+              replayed: true,
+              tx: rowToTx(existing),
+              ...(escrowRow !== null ? { escrow: rowToEscrow(escrowRow) } : {}),
+            };
+          }
+        }
+      }
+      throw err;
+    }
   }
 }

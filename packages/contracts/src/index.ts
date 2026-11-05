@@ -7,6 +7,7 @@ export * from './common.js';
 export * from './accounts.js';
 export * from './wallet.js';
 export * from './escrows.js';
+export * from './hitl.js';
 export * from './economy.js';
 export * from './system.js';
 export * from './openapi.js';

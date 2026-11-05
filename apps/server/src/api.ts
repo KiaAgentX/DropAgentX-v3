@@ -504,4 +504,195 @@ export const API_ROUTES: ApiRoute[] = [
       return escrowActionResponse(result);
     },
   },
+
+  // ── HITL queue (charter Article 7) — the bot creates, humans decide ──
+
+  {
+    method: 'post',
+    path: '/hitl',
+    operationId: 'createHitlRequest',
+    summary: 'Queue a human-approval request (amount copied from the escrow; duplicate id → replay)',
+    tag: 'hitl',
+    security: 'admin',
+    body: C.createHitlRequestSchema,
+    response: C.hitlViewSchema,
+    status: 201,
+    handler: async ({ store }, { body }) => {
+      const input = body as C.CreateHitlRequest;
+      const escrow = await store.getEscrow(input.escrowId);
+      if (escrow === null) {
+        throw new DomainFailure({ code: 'ESCROW_NOT_FOUND', message: `Escrow ${input.escrowId} does not exist` });
+      }
+      if (escrow.status !== 'DELIVERED' && escrow.status !== 'DISPUTED') {
+        throw new DomainFailure({
+          code: 'INVALID_TRANSITION',
+          message: `Escrow ${escrow.id} is ${escrow.status} — only DELIVERED or DISPUTED escrows need release approval`,
+        });
+      }
+      if (!D.requiresHitl(escrow.amount)) {
+        throw new DomainFailure({
+          code: 'HITL_NOT_REQUIRED',
+          message: `Release of ${escrow.amount} Đ is below the HITL threshold (${D.CHARTER.hitlThresholdDin} Đ) — release directly`,
+        });
+      }
+      const ttlHours = input.ttlHours ?? 24;
+      const expiresAt = new Date(Date.now() + ttlHours * 3_600_000);
+      const id = input.id ?? `hitl_${randomUUID()}`;
+      const existing = await store.getHitl(id);
+      if (existing !== null) return hitlToView(existing); // replay-safe creation
+      const row = await store.insertHitl({
+        id,
+        kind: input.kind,
+        escrowId: escrow.id,
+        amount: escrow.amount,
+        requesterId: input.requesterId,
+        ...(input.note !== undefined ? { note: input.note } : {}),
+        expiresAt,
+      });
+      await store.prisma.auditLog.create({
+        data: { actor: input.requesterId, action: 'hitl.create', target: escrow.id, meta: JSON.stringify({ hitlId: row.id, amount: row.amount }) },
+      });
+      return hitlToView(row);
+    },
+  },
+  {
+    method: 'get',
+    path: '/hitl',
+    operationId: 'listHitlRequests',
+    summary: 'List HITL requests (optionally filtered by status)',
+    tag: 'hitl',
+    security: 'admin',
+    query: z.object({ status: C.hitlStatusSchema.optional() }),
+    response: C.hitlListResponseSchema,
+    handler: async ({ store }, { query }) => ({
+      items: (await store.listHitl(query.status as C.HitlStatusWire | undefined)).map(hitlToView),
+    }),
+  },
+  {
+    method: 'get',
+    path: '/hitl/{id}',
+    operationId: 'getHitlRequest',
+    summary: 'Read one HITL request',
+    tag: 'hitl',
+    security: 'admin',
+    params: z.object({ id: C.idSchema }),
+    response: C.hitlViewSchema,
+    handler: async ({ store }, { params }) => {
+      const row = await store.getHitl(params.id!);
+      if (row === null) {
+        throw new DomainFailure({ code: 'HITL_NOT_FOUND', message: `HITL request ${params.id} does not exist` });
+      }
+      return hitlToView(row);
+    },
+  },
+  {
+    method: 'post',
+    path: '/hitl/{id}/approve',
+    operationId: 'approveHitlRequest',
+    summary: 'Approve → ESCROW_RELEASE settles in the same transaction (seller 90% + treasury 10%)',
+    tag: 'hitl',
+    security: 'admin',
+    params: z.object({ id: C.idSchema }),
+    body: C.hitlDecisionRequestSchema,
+    response: C.hitlActionResponseSchema,
+    handler: async ({ store }, { params, body }) => {
+      const input = body as C.HitlDecisionRequest;
+      const row = await store.getHitl(params.id!);
+      if (row === null) {
+        throw new DomainFailure({ code: 'HITL_NOT_FOUND', message: `HITL request ${params.id} does not exist` });
+      }
+      const decided = await store.decideHitl({
+        requestId: row.id,
+        decision: 'APPROVED',
+        decidedBy: input.decidedBy,
+        ...(input.note !== undefined ? { decisionNote: input.note } : {}),
+        execute: (ledger, registry) =>
+          D.releaseEscrow(ledger, registry, {
+            escrowId: row.escrowId,
+            approvedByAdmin: true,
+            idempotencyKey: `hitl:${row.id}:approve`,
+          }),
+      });
+      return {
+        request: hitlToView(decided.request),
+        escrow: decided.escrow !== undefined ? escrowToView(decided.escrow) : null,
+        txId: decided.tx?.id ?? null,
+        replayed: decided.replayed,
+      };
+    },
+  },
+  {
+    method: 'post',
+    path: '/hitl/{id}/reject',
+    operationId: 'rejectHitlRequest',
+    summary: 'Reject — no money moves; the escrow stays locked until arbitration decides otherwise',
+    tag: 'hitl',
+    security: 'admin',
+    params: z.object({ id: C.idSchema }),
+    body: C.hitlDecisionRequestSchema,
+    response: C.hitlActionResponseSchema,
+    handler: async ({ store }, { params, body }) => {
+      const input = body as C.HitlDecisionRequest;
+      const row = await store.getHitl(params.id!);
+      if (row === null) {
+        throw new DomainFailure({ code: 'HITL_NOT_FOUND', message: `HITL request ${params.id} does not exist` });
+      }
+      const decided = await store.decideHitl({
+        requestId: row.id,
+        decision: 'REJECTED',
+        decidedBy: input.decidedBy,
+        ...(input.note !== undefined ? { decisionNote: input.note } : {}),
+        execute: () => {
+          // Unreachable for REJECTED — decideHitl only calls execute on APPROVED.
+          throw new HttpFailure(500, 'INTERNAL', 'REJECTED decision must not execute a settlement.');
+        },
+      });
+      return {
+        request: hitlToView(decided.request),
+        escrow: decided.escrow !== undefined ? escrowToView(decided.escrow) : null,
+        txId: decided.tx?.id ?? null,
+        replayed: decided.replayed,
+      };
+    },
+  },
+  {
+    method: 'post',
+    path: '/hitl/sweep',
+    operationId: 'sweepHitl',
+    summary: 'TTL sweep — expire overdue PENDING requests (bots call this on an interval)',
+    tag: 'hitl',
+    security: 'admin',
+    response: C.hitlSweepResponseSchema,
+    handler: async ({ store }) => ({ expired: await store.expireOverdueHitl(new Date()) }),
+  },
 ];
+
+function hitlToView(row: {
+  id: string;
+  kind: string;
+  escrowId: string;
+  amount: number;
+  requesterId: string;
+  note: string | null;
+  status: string;
+  createdAt: Date;
+  expiresAt: Date;
+  decidedBy: string | null;
+  decidedAt: Date | null;
+  decisionNote: string | null;
+}): C.HitlView {
+  return {
+    id: row.id,
+    kind: row.kind as C.HitlKind,
+    escrowId: row.escrowId,
+    amount: row.amount,
+    requesterId: row.requesterId,
+    note: row.note,
+    status: row.status as C.HitlStatusWire,
+    createdAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt.toISOString(),
+    decidedBy: row.decidedBy,
+    decidedAt: row.decidedAt !== null ? row.decidedAt.toISOString() : null,
+    decisionNote: row.decisionNote,
+  };
+}

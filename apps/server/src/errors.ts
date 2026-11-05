@@ -30,7 +30,7 @@ export class HttpFailure extends Error {
   }
 }
 
-const NOT_FOUND_CODES = new Set(['ESCROW_NOT_FOUND', 'UNKNOWN_ACCOUNT']);
+const NOT_FOUND_CODES = new Set(['ESCROW_NOT_FOUND', 'UNKNOWN_ACCOUNT', 'HITL_NOT_FOUND']);
 
 const UNPROCESSABLE_CODES = new Set([
   'INVALID_TRANSITION',
@@ -47,6 +47,9 @@ const UNPROCESSABLE_CODES = new Set([
   'INVALID_ACCOUNT_KIND',
   'TOO_FEW_POSTINGS',
   'ESCROW_TTL_NOT_REACHED',
+  'HITL_NOT_REQUIRED',
+  'HITL_ALREADY_DECIDED',
+  'HITL_EXPIRED',
 ]);
 
 export interface HttpErrorPayload {

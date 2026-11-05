@@ -20,7 +20,11 @@ export type DomainErrorCode =
   | 'ESCROW_NOT_FOUND'
   | 'ESCROW_ALREADY_EXISTS'
   | 'REQUIRES_HUMAN_APPROVAL'
-  | 'MINT_CAP_EXCEEDED';
+  | 'MINT_CAP_EXCEEDED'
+  | 'HITL_NOT_FOUND'
+  | 'HITL_NOT_REQUIRED'
+  | 'HITL_ALREADY_DECIDED'
+  | 'HITL_EXPIRED';
 
 export interface DomainError {
   readonly code: DomainErrorCode;

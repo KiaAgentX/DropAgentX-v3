@@ -45,13 +45,16 @@
   رض حساب منفی، 401/404/422/429 درست؛ **۸۴/۸۴ کل monorepo** (domain ۴۰ + llm ۱۷ + contracts ۱۱ + server ۱۶)؛
   tsc strict تمیز؛ بوت واقعی سرور با سه متغیر LLM و کانفیگ ناقص رد شد (curl-تست).
 
-## فاز ۳ — ربات (`apps/bot`) ⏭ فاز بعدی
+## فاز ۳ — ربات (`apps/bot`) ✅
 
-- grammY (webhook روی Railway، polling در توسعه) + Orchestrator
-- صف HITL با TTL برای عملیات پولی ≥ ۵۰k
-- ۲۸ دستور فعلی v2 به فرمت جدید مهاجرت می‌کند؛ i18n fa/en
-- **پذیرش**: دستور `/balance`, `/buy`, `/orders` روی دیتابیس v3 کار می‌کند؛
-  تلاش دوباره‌ی webhook ها دوبار پول جابه‌جا نمی‌کند (idempotency از فاز ۱).
+- grammY (webhook روی Railway، polling در توسعه) + **Orchestrator خالص** (بدون grammY — قابل‌تست آفلاین)
+- صف HITL روی سرور (`/hitl/*` — ۶ endpoint جدید در contracts و OpenAPI): تایید ادمین، تسویه را **در همان تراکنش** اجرا می‌کند؛ id قطعی `hitl:<id>:approve` → تایید دوباره هرگز دوباره پرداخت نمی‌کند؛ TTL sweep (۲۴h پیش‌فرض)
+- Authz fail-closed در orchestrator: خریدار fund/release/dispute/cancel، فروشنده deliver؛ کلیدهای idempotency از message_id تلگرام ساخته می‌شوند → retry وب‌هوک امن است
+- i18n fa/en + نگاشت کد خطای وایر به پیام محلی؛ ۱۴ دستور کاربر + ۵ دستور ادمین + کیبورد شیشه‌ای HITL
+- **پذیرش (محقق شد)**: `/balance`، `/buy`، `/orders` روی دیتابیس v3 سبز؛ تلاش دوباره‌ی update دوبار پول جابه‌جا نمی‌کند
+  (تست replay با همان message_id)؛ HITL ≥ ۵۰٬۰۰۰ Đ از صف می‌گذرد و تاییدش دقیقاً ۹۰/۱۰ تسویه می‌کند؛
+  **۱۱۴/۱۱۴ کل monorepo** (domain ۴۰ + llm ۱۷ + contracts ۱۱ + server ۲۶ + bot ۲۰)؛ tsc strict تمیز؛
+  بوت دودی سرور: `llmConfigured:true` با سه متغیر ADR-006، ۲۰ مسیر OpenAPI با تگ hitl.
 
 ## فاز ۴ — داشبورد (`apps/dashboard`) ⏳
 

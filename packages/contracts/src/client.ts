@@ -43,6 +43,22 @@ import {
   refundEscrowRequestSchema,
   type RefundEscrowRequest,
 } from './escrows.js';
+import {
+  type CreateHitlRequest,
+  createHitlRequestSchema,
+  type HitlActionResponse,
+  hitlActionResponseSchema,
+  type HitlDecisionRequest,
+  hitlDecisionRequestSchema,
+  type HitlListResponse,
+  hitlListResponseSchema,
+  type HitlSweepResponse,
+  hitlSweepResponseSchema,
+  hitlStatusSchema,
+  type HitlStatusWire,
+  type HitlView,
+  hitlViewSchema,
+} from './hitl.js';
 import { type HealthResponse, healthResponseSchema } from './system.js';
 import {
   burnRequestSchema,
@@ -94,9 +110,16 @@ export interface V3Client {
   refundEscrow(id: string, request?: RefundEscrowRequest): Promise<ApiClientResult<EscrowActionResponse>>;
   cancelEscrow(id: string, request?: CancelEscrowRequest): Promise<ApiClientResult<EscrowActionResponse>>;
   expireEscrow(id: string, request?: ExpireEscrowRequest): Promise<ApiClientResult<EscrowActionResponse>>;
+  createHitlRequest(request: CreateHitlRequest): Promise<ApiClientResult<HitlView>>;
+  listHitl(status?: HitlStatusWire): Promise<ApiClientResult<HitlListResponse>>;
+  getHitl(id: string): Promise<ApiClientResult<HitlView>>;
+  approveHitl(id: string, request: HitlDecisionRequest): Promise<ApiClientResult<HitlActionResponse>>;
+  rejectHitl(id: string, request: HitlDecisionRequest): Promise<ApiClientResult<HitlActionResponse>>;
+  sweepHitl(): Promise<ApiClientResult<HitlSweepResponse>>;
 }
 
 const ESCROW_STATUS_QUERY = z.object({ status: escrowStatusSchema.optional() });
+const HITL_STATUS_QUERY = z.object({ status: hitlStatusSchema.optional() });
 
 function fillPath(template: string, params: Record<string, string>): string {
   return template.replace(/\{([A-Za-z0-9_]+)\}/g, (_m, key: string) => {
@@ -239,5 +262,19 @@ export function createV3Client(options: V3ClientOptions): V3Client {
       call('POST', '/escrows/{id}/cancel', { pathParams: { id }, body: request, input: cancelEscrowRequestSchema, schema: escrowActionResponseSchema }),
     expireEscrow: (id, request = {}) =>
       call('POST', '/escrows/{id}/expire', { pathParams: { id }, body: request, input: expireEscrowRequestSchema, schema: escrowActionResponseSchema }),
+    createHitlRequest: (request) =>
+      call('POST', '/hitl', { body: request, input: createHitlRequestSchema, schema: hitlViewSchema }),
+    listHitl: (status) =>
+      call('GET', '/hitl', {
+        ...(status !== undefined ? { query: { status } } : {}),
+        queryInput: HITL_STATUS_QUERY,
+        schema: hitlListResponseSchema,
+      }),
+    getHitl: (id) => call('GET', '/hitl/{id}', { pathParams: { id }, schema: hitlViewSchema }),
+    approveHitl: (id, request) =>
+      call('POST', '/hitl/{id}/approve', { pathParams: { id }, body: request, input: hitlDecisionRequestSchema, schema: hitlActionResponseSchema }),
+    rejectHitl: (id, request) =>
+      call('POST', '/hitl/{id}/reject', { pathParams: { id }, body: request, input: hitlDecisionRequestSchema, schema: hitlActionResponseSchema }),
+    sweepHitl: () => call('POST', '/hitl/sweep', { schema: hitlSweepResponseSchema }),
   };
 }

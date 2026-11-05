@@ -36,6 +36,7 @@ beforeEach(async () => {
   resetRateLimiter();
   await built.prisma.auditLog.deleteMany();
   await built.prisma.outboxEvent.deleteMany();
+  await built.prisma.hitlRequest.deleteMany();
   await built.prisma.posting.deleteMany();
   await built.prisma.tx.deleteMany();
   await built.prisma.escrow.deleteMany();
